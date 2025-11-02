@@ -1,6 +1,29 @@
 # 🤖 Instructions pour Claude - Expert Next.js + BetterAuth + Drizzle
 
-## Metre à jour le CLAUDE.md
+## 📊 Progression du Projet - Fitness Tracker
+
+**Dernière mise à jour** : 2 novembre 2025
+**Score global** : 40/100
+
+### ✅ Ce qui fonctionne (40 points)
+- **Auth de base** : Sign in/Sign up avec BetterAuth ✅
+- **Formulaires** : React Hook Form + Zod validation ✅
+- **UI** : Shadcn UI (Field, Input, Card, Button, Toaster) ✅
+- **Proxy** : Protection des routes fonctionnelle ✅
+- **DB** : Schéma Drizzle de base (user, session, account, verification) ✅
+- **Server Actions** : Validation côté serveur ✅
+- **Notifications** : Sonner (toasts) ✅
+
+### 🔴 Prochaines priorités
+1. **Tester l'auth complète** (inscription + connexion)
+2. **Améliorer la page d'accueil** (afficher profil utilisateur)
+3. **Implémenter forgot-password**
+4. **Créer le dashboard fitness**
+5. **Architecture DAL/DTO** (si nécessaire plus tard)
+
+---
+
+## Mettre à jour le CLAUDE.md
 
 Tu mettras à jour le CLAUDE.md pour suivre la progression du projet
 
@@ -69,18 +92,18 @@ J'ai besoin de ton aide pour :
 ## 📋 Checklist des fonctionnalités attendues
 
 ### Authentification de base
-- [ ] Sign in / Sign up par email/password
+- [x] Sign in / Sign up par email/password ✅ **Implémenté - 2 nov 2025**
 - [ ] Vérification d'email obligatoire
 - [ ] Mot de passe oublié / Reset password
 - [ ] Social auth (Google, GitHub, etc.)
 - [ ] 2FA (Two-Factor Authentication)
-- [ ] Session management
-- [ ] Remember me / Persistent sessions
+- [x] Session management ✅ **Implémenté - BetterAuth**
+- [x] Remember me / Persistent sessions ✅ **Implémenté - BetterAuth**
 
 ### Pages & UI
 - [ ] Page d'accueil (landing page)
-- [ ] Page de connexion (signin)
-- [ ] Page d'inscription (signup)
+- [x] Page de connexion (signin) ✅ **Implémenté - 2 nov 2025**
+- [x] Page d'inscription (signup) ✅ **Implémenté - 2 nov 2025**
 - [ ] Page mot de passe oublié
 - [ ] Page de réinitialisation de mot de passe
 - [ ] Page de vérification email
@@ -89,14 +112,14 @@ J'ai besoin de ton aide pour :
 - [ ] Page 404 et erreurs personnalisées
 
 ### Sécurité & Architecture
-- [ ] Middleware de protection des routes
+- [x] Middleware de protection des routes ✅ **Implémenté - proxy.ts - 2 nov 2025**
 - [ ] DAL (Data Access Layer) pour vérifier les sessions
 - [ ] DTO pour ne jamais exposer de données sensibles
-- [ ] Validation Zod sur tous les formulaires
+- [x] Validation Zod sur tous les formulaires ✅ **Implémenté - 2 nov 2025**
 - [ ] Rate limiting sur les endpoints sensibles
 - [ ] CSRF protection
 - [ ] XSS protection
-- [ ] Sanitization des inputs
+- [x] Sanitization des inputs ✅ **Partiellement (Zod validation)**
 - [ ] HTTPS en production
 
 ### Gestion des utilisateurs
