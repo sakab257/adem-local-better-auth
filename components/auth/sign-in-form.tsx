@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Spinner } from "@/components/ui/spinner";
 
 export function SignInForm() {
   const router = useRouter();
@@ -90,7 +91,13 @@ export function SignInForm() {
           </Field>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Connexion..." : "Se connecter"}
+            {isLoading ? (
+              <span className="flex items-center gap-1">
+                <Spinner />
+                Connexion...
+              </span>
+              
+            ) : "Se connecter"}
           </Button>
         </form>
       </CardContent>

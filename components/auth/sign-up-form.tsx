@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Spinner } from "../ui/spinner";
 
 export function SignUpForm() {
   const router = useRouter();
@@ -122,7 +123,12 @@ export function SignUpForm() {
           </Field>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Création..." : "Créer mon compte"}
+            {isLoading ? (
+              <span className="flex items-center gap-">
+                <Spinner />
+                Création...
+              </span>
+            ) : "Créer mon compte"}
           </Button>
         </form>
       </CardContent>

@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Skeleton } from "./ui/skeleton";
-import { Separator } from "./ui/separator";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { LogOut, Mail, User } from "lucide-react";
+import { LogOut, Mail, User, Settings } from "lucide-react";
+import Link from "next/link";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfileClient() {
   const router = useRouter();
@@ -104,7 +106,6 @@ export default function ProfileClient() {
             </div>
             <div>
               <h3 className="text-lg font-semibold">{session.user.name}</h3>
-              <p className="text-sm text-muted-foreground">Membre actif</p>
             </div>
           </div>
 
@@ -133,6 +134,13 @@ export default function ProfileClient() {
 
           {/* Actions */}
           <div className="space-y-2">
+            <Link href="/settings" className="block">
+              <Button variant="outline" className="w-full">
+                <Settings className="mr-2 h-4 w-4" />
+                Paramètres
+              </Button>
+            </Link>
+
             <Button
               onClick={handleSignOut}
               variant="destructive"
@@ -140,7 +148,10 @@ export default function ProfileClient() {
               disabled={isSigningOut}
             >
               {isSigningOut ? (
-                "Déconnexion..."
+                <>
+                  <Spinner />
+                  Déconnexion...
+                </>
               ) : (
                 <>
                   <LogOut className="mr-2 h-4 w-4" />
