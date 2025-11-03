@@ -92,10 +92,10 @@ export default function ProfileClient() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-muted/40">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Mon Profil</CardTitle>
-          <CardDescription>
-            Bienvenue sur votre espace Fitness Tracker
+        <CardHeader className="w-full">
+          <CardTitle className="mx-auto">Mon Profil</CardTitle>
+          <CardDescription className="mx-auto">
+            Bienvenue
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
