@@ -1,10 +1,17 @@
 import ProfileClient from "@/components/profile-client";
 
+
 export const metadata = {
-  title: "Accueil - Auth Template",
-  description: "Accueil du template",
+  title: "Accueil - Sanity",
+  description: "Accueil",
 };
 
 export default function Home() {
-  return <ProfileClient />;
+  return (
+    <>
+      
+      <ProfileClient />
+    </>
+  )
+  ;
 }

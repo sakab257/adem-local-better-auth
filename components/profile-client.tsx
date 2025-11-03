@@ -1,51 +1,24 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
-import { LogOut, Mail, User, Settings } from "lucide-react";
+import { Mail, User, Settings } from "lucide-react";
 import Link from "next/link";
-import { Spinner } from "@/components/ui/spinner";
+import SignOutButton from "@/components/auth/sign-out-button";
+
 
 export default function ProfileClient() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-
-    try {
-      // Utiliser authClient.signOut() pour invalider le cache client ET serveur
-      await authClient.signOut({
-        fetchOptions: {
-          onSuccess: () => {
-            toast.success("Déconnexion réussie");
-            // Redirection vers sign-in
-            router.push("/auth/sign-in");
-            router.refresh();
-          },
-          onError: () => {
-            toast.error("Erreur lors de la déconnexion");
-            setIsSigningOut(false);
-          },
-        },
-      });
-    } catch (error) {
-      toast.error("Une erreur s'est produite");
-      setIsSigningOut(false);
-    }
-  };
 
   // État de chargement avec skeleton
   if (isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="flex h-full items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <Skeleton className="h-8 w-32" />
@@ -69,7 +42,7 @@ export default function ProfileClient() {
   // État non connecté (ne devrait pas arriver grâce au proxy)
   if (!session) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="flex h-full items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Non connecté</CardTitle>
@@ -90,7 +63,7 @@ export default function ProfileClient() {
 
   // Composant principal avec profil
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-muted/40">
+    <div className="flex h-full items-center justify-center p-4 bg-muted/40">
       <Card className="w-full max-w-md">
         <CardHeader className="w-full">
           <CardTitle className="mx-auto">Mon Profil</CardTitle>
@@ -140,25 +113,6 @@ export default function ProfileClient() {
                 Paramètres
               </Button>
             </Link>
-
-            <Button
-              onClick={handleSignOut}
-              variant="destructive"
-              className="w-full"
-              disabled={isSigningOut}
-            >
-              {isSigningOut ? (
-                <>
-                  <Spinner />
-                  Déconnexion...
-                </>
-              ) : (
-                <>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Se déconnecter
-                </>
-              )}
-            </Button>
           </div>
         </CardContent>
       </Card>

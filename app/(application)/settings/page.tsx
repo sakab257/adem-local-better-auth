@@ -5,7 +5,7 @@ import { SecurityForm } from "@/components/settings/security-form";
 import { AccountForm } from "@/components/settings/account-form";
 
 export const metadata = {
-  title: "Paramètres - Auth Template",
+  title: "Paramètres - Sanity",
   description: "Gérez vos paramètres de compte",
 };
 
