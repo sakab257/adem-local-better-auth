@@ -1,25 +1,58 @@
 # 🤖 Instructions pour Claude - Expert Next.js + BetterAuth + Drizzle
 
-## 📊 Progression du Projet - Fitness Tracker
+## 📊 Progression du Projet - Auth Template Better Auth - PostgreSQL - Drizzle
 
-**Dernière mise à jour** : 2 novembre 2025
-**Score global** : 40/100
+**Dernière mise à jour** : 3 novembre 2025
+**Score global** : 85/100 🎉
 
-### ✅ Ce qui fonctionne (40 points)
+### ✅ Ce qui fonctionne (85 points)
+
+#### Authentification complète (25/25)
 - **Auth de base** : Sign in/Sign up avec BetterAuth ✅
-- **Formulaires** : React Hook Form + Zod validation ✅
-- **UI** : Shadcn UI (Field, Input, Card, Button, Toaster) ✅
-- **Proxy** : Protection des routes fonctionnelle ✅
-- **DB** : Schéma Drizzle de base (user, session, account, verification) ✅
-- **Server Actions** : Validation côté serveur ✅
-- **Notifications** : Sonner (toasts) ✅
+- **Email Verification** : Système complet avec toggle mock/real ✅
+- **Reset Password** : Flow complet (forgot + reset) ✅
+- **Session management** : Automatique avec BetterAuth ✅
+- **Protection des routes** : Middleware proxy fonctionnel ✅
 
-### 🔴 Prochaines priorités
-1. **Tester l'auth complète** (inscription + connexion)
-2. **Améliorer la page d'accueil** (afficher profil utilisateur)
-3. **Implémenter forgot-password**
-4. **Créer le dashboard fitness**
-5. **Architecture DAL/DTO** (si nécessaire plus tard)
+#### Sécurité & Architecture (20/20)
+- **DAL** (Data Access Layer) : Vérifie les sessions sur toutes les Server Actions ✅
+- **DTO** (Data Transfer Objects) : Filtre les données sensibles ✅
+- **Validation Zod** : Client + Serveur sur tous les formulaires ✅
+- **CSRF Protection** : Géré par BetterAuth ✅
+
+#### UI/UX (15/15)
+- **Shadcn UI** : Composants modernes (Field, Input, Card, Button, Toaster, Tabs, Skeleton) ✅
+- **React Hook Form** : Formulaires performants ✅
+- **Loading states** : Spinners et Skeletons partout ✅
+- **Toasts** : Feedback utilisateur avec Sonner ✅
+- **Messages en français** : UX localisée ✅
+
+#### Emails (15/15)
+- **React Email** : Templates professionnels (verification + reset password) ✅
+- **Resend** : Intégration complète ✅
+- **Toggle mock/real** : Variable d'environnement USE_REAL_EMAILS ✅
+- **Mode mock par défaut** : Dev rapide sans config ✅
+- **UX mock améliorée** : Lien de vérification clairement affiché et copiable dans la console ✅
+
+#### Gestion du profil (10/10)
+- **Modifier profil** : Nom et email (avec vérification email si changement) ✅
+- **Changer mot de passe** : Validation stricte ✅
+- **Supprimer compte** : Avec confirmation ✅
+- **Page Settings** : Interface avec tabs (Profil, Sécurité, Compte) ✅
+
+### 🚀 Nouveau : Template production-ready !
+- **README complet** : Installation, configuration, scaling ✅
+- **.env.example** : Documentation des variables ✅
+- **Guide SCALING** : RBAC, Multi-tenant, Stripe, Audit Logs, etc. ✅
+
+### 🔴 Améliorations futures (optionnel)
+1. **Social Login** (Google, GitHub) - Facilement ajoutable
+2. **2FA/MFA** - Plugin BetterAuth disponible
+3. **Rate Limiting** - Plugin BetterAuth disponible
+4. **Upload d'avatar** - UploadThing ou S3
+5. **Tests E2E** - Playwright
+6. **Audit Logs** - Traçabilité des actions
+7. **Rôles & Permissions** - RBAC (guide dans README)
 
 ---
 
@@ -71,7 +104,7 @@ J'ai besoin de ton aide pour :
 
 2. **Modifier et améliorer les implémentations**
    - Surtout les schémas Drizzle pour la base de données
-   - Architecture sécurisée (DAL, DTO, middleware)
+   - Architecture sécurisée (DAL, DTO, proxy)
    - Gestion des rôles et permissions
 
 3. **Implémenter toutes les fonctionnalités modernes pour un SaaS**
@@ -95,20 +128,17 @@ J'ai besoin de ton aide pour :
 - [x] Sign in / Sign up par email/password ✅ **Implémenté - 2 nov 2025**
 - [ ] Vérification d'email obligatoire
 - [ ] Mot de passe oublié / Reset password
-- [ ] Social auth (Google, GitHub, etc.)
-- [ ] 2FA (Two-Factor Authentication)
 - [x] Session management ✅ **Implémenté - BetterAuth**
 - [x] Remember me / Persistent sessions ✅ **Implémenté - BetterAuth**
 
 ### Pages & UI
-- [ ] Page d'accueil (landing page)
 - [x] Page de connexion (signin) ✅ **Implémenté - 2 nov 2025**
 - [x] Page d'inscription (signup) ✅ **Implémenté - 2 nov 2025**
 - [ ] Page mot de passe oublié
 - [ ] Page de réinitialisation de mot de passe
 - [ ] Page de vérification email
 - [ ] Dashboard utilisateur
-- [ ] Page settings (profil, sécurité, billing)
+- [x] Page settings (profil, sécurité, suppression)
 - [ ] Page 404 et erreurs personnalisées
 
 ### Sécurité & Architecture
@@ -123,60 +153,21 @@ J'ai besoin de ton aide pour :
 - [ ] HTTPS en production
 
 ### Gestion des utilisateurs
-- [ ] Système de rôles (user, admin, super_admin)
-- [ ] Système de permissions (RBAC)
-- [ ] Gestion du profil utilisateur
 - [ ] Upload d'avatar
 - [ ] Modification email (avec vérification)
-- [ ] Modification mot de passe
-- [ ] Suppression de compte (soft delete)
-- [ ] Export des données utilisateur (RGPD)
-
-### Multi-tenant & Organisations
-- [ ] Table organisations
-- [ ] Invitations membres
-- [ ] Rôles dans l'organisation (owner, admin, member, viewer)
-- [ ] Gestion des membres
-- [ ] Limites par plan (max members, max projects, etc.)
-
-### SaaS Features
-- [ ] Plans tarifaires (free, starter, pro, enterprise)
-- [ ] Intégration Stripe (subscription, checkout)
-- [ ] Webhooks Stripe (payment success, subscription cancelled, etc.)
-- [ ] Page de billing et facturation
-- [ ] Upgrade/Downgrade de plan
-- [ ] Période d'essai (trial period)
-- [ ] Facturation usage-based (optionnel)
+- [x] Modification mot de passe
+- [x] Suppression de compte
 
 ### Notifications & Communication
-- [ ] Système de notifications (toast, Sonner)
-- [ ] Emails transactionnels (Resend, React Email)
-  - [ ] Email de bienvenue
+- [x] Système de notifications (toast, Sonner)
+- [ ] Emails
   - [ ] Email de vérification
   - [ ] Email de reset password
   - [ ] Email de changement d'email
   - [ ] Email de changement de mot de passe
-  - [ ] Email de facturation
-- [ ] Préférences de notifications
-- [ ] Marketing emails (opt-in)
-
-### Tracking & Analytics
-- [ ] Audit logs (actions sensibles)
-- [ ] Tracking des connexions (lastLoginAt, loginCount)
-- [ ] Tracking IP et User Agent
-- [ ] Analytics dashboard (optionnel)
 
 ### Database Schema
 - [ ] Table `user` enrichie (role, status, plan, etc.)
-- [ ] Table `organization`
-- [ ] Table `organization_member`
-- [ ] Table `password_reset`
-- [ ] Table `audit_log`
-- [ ] Table `invitation` (optionnel)
-- [ ] Table `notification` (optionnel)
-- [ ] Soft delete sur toutes les tables principales
-- [ ] Timestamps (createdAt, updatedAt) partout
-- [ ] Metadata JSONB pour flexibilité
 
 ---
 
@@ -199,9 +190,7 @@ J'ai besoin de ton aide pour :
 
 ### Backend & Services
 - **Email**: Resend + React Email
-- **Payments**: Stripe
 - **File Upload**: UploadThing ou S3
-- **Analytics**: PostHog ou Plausible (optionnel)
 
 ### Dev Tools
 - **Package Manager**: pnpm
@@ -215,7 +204,7 @@ J'ai besoin de ton aide pour :
 
 ```
 /app
-  /(auth)
+  /auth
     /signin
     /signup
     /forgot-password
@@ -234,17 +223,14 @@ J'ai besoin de ton aide pour :
     /about
   /api
     /auth/[...all]
-    /webhooks
-      /stripe
 
 /components
   /auth
     /signin-form.tsx
     /signup-form.tsx
-  /dashboard
-    /header.tsx
-    /sidebar.tsx
-    /user-menu.tsx
+    /forgot-password-form.tsx
+    /reset-password-form.tsx
+    /verify-email-form.tsx    
   /ui (Shadcn components)
 
 /lib
@@ -252,12 +238,10 @@ J'ai besoin de ton aide pour :
   /auth-client.ts (Client auth)
   /dal.ts (Data Access Layer)
   /dto.ts (Data Transfer Objects)
-  /permissions.ts (RBAC)
-  /email.ts (Email service)
-  /stripe.ts (Stripe config)
   /validations
     /auth.ts
     /user.ts
+    /settings.ts
 
 /db
   /drizzle.ts (DB connection)
@@ -267,9 +251,8 @@ J'ai besoin de ton aide pour :
 /server
   /user.ts (User actions)
   /auth.ts (Auth actions)
-  /organization.ts (Org actions)
 
-/middleware.ts (Route protection)
+/proxy.ts (Route protection)
 ```
 
 ---

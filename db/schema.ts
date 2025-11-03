@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -11,7 +11,10 @@ export const user = pgTable("user", {
         .defaultNow()
         .$onUpdate(() => /* @__PURE__ */ new Date())
         .notNull(),
-});
+}, (table) => ({
+    // Index pour améliorer les performances
+    emailIdx: index("user_email_idx").on(table.email),
+}));
 
 export const session = pgTable("session", {
     id: text("id").primaryKey(),

@@ -30,21 +30,20 @@ export function ForgotPasswordForm() {
     setIsLoading(true);
 
     try {
-      await authClient.forgetPassword({
+      // ✅ Utilisation de la méthode correcte de BetterAuth
+      const result = await authClient.forgetPassword({
         email: data.email,
-        redirectTo: "/auth/reset-password",
-        fetchOptions: {
-          onSuccess: () => {
-            setEmailSent(true);
-            toast.success("Email envoyé avec succès");
-            setIsLoading(false);
-          },
-          onError: (ctx) => {
-            toast.error(ctx.error.message || "Erreur lors de l'envoi de l'email");
-            setIsLoading(false);
-          },
-        },
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
+
+      if (result.error) {
+        toast.error(result.error.message || "Erreur lors de l'envoi de l'email");
+        setIsLoading(false);
+      } else {
+        setEmailSent(true);
+        toast.success("Email envoyé avec succès");
+        setIsLoading(false);
+      }
     } catch (error) {
       toast.error("Une erreur s'est produite");
       setIsLoading(false);

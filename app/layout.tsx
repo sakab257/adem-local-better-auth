@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fitness Tracker",
-  description: "Suivez vos entraînements et vos progrès",
+  title: "Template Better Auth - PostgreSQL",
+  description: "Template Better Auth - PostgreSQL",
 };
 
 export default function RootLayout({

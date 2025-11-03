@@ -1,5 +1,6 @@
 "use server";
 
+import { verifySession } from "@/lib/dal";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db/drizzle";
@@ -13,14 +14,8 @@ import { z } from "zod";
  */
 export const updateProfile = async (data: { name: string; email: string }) => {
   try {
-    // Vérifier la session
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session?.user) {
-      return { success: false, error: "Non authentifié" };
-    }
+    // Utilisation du DAL pour vérifier la session
+    const session = await verifySession();
 
     // Validation des données
     const validatedData = updateProfileSchema.parse(data);
@@ -55,6 +50,11 @@ export const updateProfile = async (data: { name: string; email: string }) => {
 
     return { success: true };
   } catch (error) {
+    // Erreur d'authentification
+    if (error instanceof Error && error.message === "Pas autorisé") {
+      return { success: false, error: "Non authentifié" };
+    }
+
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {
       return {
@@ -75,14 +75,8 @@ export const updateProfile = async (data: { name: string; email: string }) => {
  */
 export const deleteAccount = async () => {
   try {
-    // Vérifier la session
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session?.user) {
-      return { success: false, error: "Non authentifié" };
-    }
+    // ✅ Utilisation du DAL pour vérifier la session
+    const session = await verifySession();
 
     // Soft delete : on pourrait ajouter un champ deletedAt dans le schéma
     // Pour l'instant, on va vraiment supprimer l'utilisateur et ses données
@@ -100,6 +94,11 @@ export const deleteAccount = async () => {
 
     return { success: true };
   } catch (error) {
+    // Erreur d'authentification
+    if (error instanceof Error && error.message === "Pas autorisé") {
+      return { success: false, error: "Non authentifié" };
+    }
+
     return {
       success: false,
       error: "Erreur lors de la suppression du compte",

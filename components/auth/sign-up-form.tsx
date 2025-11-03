@@ -124,7 +124,7 @@ export function SignUpForm() {
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
-              <span className="flex items-center gap-">
+              <span className="flex items-center gap-1">
                 <Spinner />
                 Création...
               </span>

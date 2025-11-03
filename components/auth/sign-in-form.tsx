@@ -41,7 +41,12 @@ export function SignInForm() {
             router.refresh();
           },
           onError: (ctx) => {
-            toast.error(ctx.error.message || "Email ou mot de passe incorrect");
+            if (ctx.error.status === 403) {
+              toast.error("Email non verifiée");
+            }
+            else{
+              toast.error("Email ou mot de passe incorrect");
+            }
             setIsLoading(false);
           },
         },

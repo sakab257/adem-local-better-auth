@@ -1,8 +1,8 @@
 import ProfileClient from "@/components/profile-client";
 
 export const metadata = {
-  title: "Accueil - Fitness Tracker",
-  description: "Votre espace personnel de suivi d'entraînements",
+  title: "Accueil - Auth Template",
+  description: "Accueil du template",
 };
 
 export default function Home() {
