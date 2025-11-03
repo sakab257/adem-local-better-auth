@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft, Mail } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -108,7 +109,12 @@ export function ForgotPasswordForm() {
           </Field>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
+            {isLoading ? (
+              <>
+                <Spinner />
+                Envoi en cours...
+              </>
+            ) : "Envoyer le lien de réinitialisation"}
           </Button>
         </form>
       </CardContent>

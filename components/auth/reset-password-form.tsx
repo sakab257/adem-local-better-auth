@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { Spinner } from "@/components/ui/spinner";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -142,7 +143,12 @@ export function ResetPasswordForm() {
             className="w-full"
             disabled={isLoading || !token}
           >
-            {isLoading ? "Réinitialisation..." : "Réinitialiser le mot de passe"}
+            {isLoading ? (
+              <>
+                <Spinner />
+                Réinitialisation...
+              </>
+            ) : "Réinitialiser le mot de passe"}
           </Button>
         </form>
       </CardContent>

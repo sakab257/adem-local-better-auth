@@ -72,16 +72,13 @@ async function sendEmailReal(to: string, subject: string, html: string) {
 
     if (error) {
       console.error("Erreur Resend:", error);
-      toast.error("Erreur Resend" + error);
       throw new Error(error.message);
     }
 
     console.log("Email envoyé avec succès:", data);
-    toast.success("Email envoyé avec succès" + data);
     return { success: true, data };
   } catch (error) {
-    console.error("❌ Erreur lors de l'envoi d'email:", error);
-    toast.error("Erreur lors de l'envoi d'email:" + error);
+    console.error("Erreur lors de l'envoi d'email:", error);
     throw error;
   }
 }

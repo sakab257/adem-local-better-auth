@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export function AccountForm() {
   const router = useRouter();
@@ -87,9 +88,14 @@ export function AccountForm() {
                   <AlertDialogCancel>Annuler</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDeleteAccount}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    className="bg-destructive hover:bg-destructive/90"
                   >
-                    {isDeleting ? "Suppression..." : "Oui, supprimer mon compte"}
+                    {isDeleting ? (
+                      <>
+                        <Spinner />
+                        Suppression...
+                      </>
+                    ) : "Oui, supprimer mon compte"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

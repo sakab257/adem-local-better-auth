@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
+import { Spinner } from "../ui/spinner";
 
 export function ProfileForm() {
   const router = useRouter();
@@ -109,7 +110,12 @@ export function ProfileForm() {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Enregistrement..." : "Enregistrer les modifications"}
+            {isLoading ? (
+              <>
+                <Spinner />
+                Enregistrement...
+              </>
+            ) : "Enregistrer les modifications"}
           </Button>
         </div>
       </form>

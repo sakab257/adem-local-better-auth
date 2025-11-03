@@ -10,6 +10,7 @@ import { Field, FieldLabel, FieldError, FieldDescription } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 
 export function SecurityForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -108,7 +109,12 @@ export function SecurityForm() {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Modification..." : "Changer le mot de passe"}
+            {isLoading ? (
+              <>
+                <Spinner />
+                Modification...
+              </>
+            ) : "Changer le mot de passe"}
           </Button>
         </div>
       </form>

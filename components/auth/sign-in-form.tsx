@@ -97,10 +97,10 @@ export function SignInForm() {
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
-              <span className="flex items-center gap-1">
+              <>
                 <Spinner />
                 Connexion...
-              </span>
+              </>
               
             ) : "Se connecter"}
           </Button>

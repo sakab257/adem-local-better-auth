@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { auth } from './lib/auth'
 
 // Définir les routes publiques et d'authentification
-const authRoutes = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password', '/auth/reset-password']
+const authRoutes = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password']
 
 
 export async function proxy(request: NextRequest) {

@@ -36,6 +36,8 @@ export default function EmailVerification({
               Vérifier mon email
             </Button>
           </Section>
+          <Text style={text}>Ou alors, copiez-collez sur ce lien : </Text>
+          <Text style={text}>{verificationUrl}</Text>
           <Text style={text}>
             Ce lien expirera dans <strong>24 heures</strong>.
           </Text>
