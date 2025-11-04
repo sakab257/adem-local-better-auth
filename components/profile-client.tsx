@@ -102,18 +102,6 @@ export default function ProfileClient() {
               </div>
             </div>
           </div>
-
-          <Separator />
-
-          {/* Actions */}
-          <div className="space-y-2">
-            <Link href="/settings" className="block">
-              <Button variant="outline" className="w-full">
-                <Settings className="mr-2 h-4 w-4" />
-                Paramètres
-              </Button>
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>

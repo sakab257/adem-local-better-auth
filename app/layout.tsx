@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { montserrat } from "@/lib/font";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/themes/theme-provider"
 
 export const metadata: Metadata = {
   title: "Sanity Workout",
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <body
         className={`${montserrat.className} antialiased`}
       >

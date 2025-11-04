@@ -3,7 +3,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Suspense } from "react";
 
 export const metadata = {
-  title: "Inscription - Sanity",
+  title: "Inscription - Auth Template",
   description: "Inscrivez-vous, ou si vous avez déjà un compte : connectez-vous !",
 };
 

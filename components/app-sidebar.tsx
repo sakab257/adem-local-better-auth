@@ -17,7 +17,6 @@ import {
 
 import Link from "next/link"
 import SignOutButton from "./auth/sign-out-button"
-import clsx from "clsx"
 import { usePathname } from "next/navigation"
 
 // Menu items.
@@ -26,31 +25,6 @@ const items = [
         title: "Accueil",
         url: "/",
         icon: LayoutDashboard,
-    },
-    {
-        title: "Entraînements",
-        url: "#",
-        icon: Dumbbell,
-    },
-    {
-        title: "Nutrition",
-        url: "#",
-        icon: Beef,
-    },
-    {
-        title: "Profil",
-        url: "#",
-        icon: HeartPulse,
-    },
-    {
-        title: "Objectifs",
-        url: "#",
-        icon: Goal,
-    },
-    {
-        title: "Analyse", 
-        url:"#", 
-        icon: ChartSpline
     },
     {
         title: "Paramètres",
@@ -63,8 +37,8 @@ export function AppSidebar() {
     const pathname = usePathname();
 
     return (
-        <Sidebar>
-        <SidebarHeader className="flex items-center justify-center h-16">Sanity Workout</SidebarHeader>
+        <Sidebar variant="floating" className="pr-0">
+        <SidebarHeader className="flex items-center justify-center h-16">Auth Template</SidebarHeader>
         <SidebarSeparator className="mx-auto"/>
         <SidebarContent>
             <SidebarGroup>

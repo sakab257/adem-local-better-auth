@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProfileSchema, type UpdateProfileFormData } from "@/lib/validations/settings";
 import { authClient } from "@/lib/auth-client";
-import { updateProfile } from "@/server/settings";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -44,22 +43,55 @@ export function ProfileForm() {
     setIsLoading(true);
 
     try {
-      const result = await updateProfile(data);
+      const emailChanged = data.email !== session?.user?.email;
+      const nameChanged = data.name !== session?.user?.name;
 
-      if (result?.success === false) {
-        toast.error(result.error || "Erreur lors de la mise à jour du profil");
-        setIsLoading(false);
-        return;
+      // Mettre à jour le nom si changé
+      if (nameChanged) {
+        const { error } = await authClient.updateUser({
+          name: data.name,
+        });
+
+        if (error) {
+          toast.error(error.message || "Erreur lors de la mise à jour du nom");
+          setIsLoading(false);
+          return;
+        }
       }
 
-      toast.success("Profil mis à jour avec succès !");
+      // Changer l'email si modifié (avec vérification automatique)
+      if (emailChanged) {
+        const { error } = await authClient.changeEmail({
+          newEmail: data.email,
+          callbackURL: "/settings",
+        });
 
-      // Forcer un reload complet pour mettre à jour la session partout
-      // (router.refresh() ne suffit pas car le cache authClient n'est pas invalidé)
-      window.location.href = '/settings';
+        if (error) {
+          toast.error(error.message || "Erreur lors du changement d'email");
+          setIsLoading(false);
+          return;
+        }
+        toast.success("Email de vérification envoyé à votre adresse actuelle ! Vérifiez votre boîte mail pour confirmer le changement.");
+      } else if (nameChanged) {
+        toast.success("Profil mis à jour avec succès !");
+      }
+
+      // Rafraîchir la session
+      router.refresh();
+
+      // Si seulement le nom a changé, reload pour mettre à jour partout
+      if (nameChanged && !emailChanged) {
+        setTimeout(() => {
+          window.location.href = '/settings';
+        }, 500);
+      }
     } catch (error) {
       toast.error("Une erreur s'est produite");
       setIsLoading(false);
+    } finally {
+      if (!session) {
+        setIsLoading(false);
+      }
     }
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signInSchema, type SignInFormData } from "@/lib/validations/auth";
@@ -10,13 +10,32 @@ import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Spinner } from "@/components/ui/spinner";
 
 export function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Afficher un toast si redirigé depuis le middleware avec erreur
+  useEffect(() => {
+    const error = searchParams.get("error");
+    const message = searchParams.get("message");
+
+    if (error === "email-not-verified" && message) {
+      toast.warning(message, {
+        duration: 5000,
+      });
+
+      // Nettoyer l'URL pour éviter de réafficher le toast au reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      url.searchParams.delete("message");
+      window.history.replaceState({}, "", url);
+    }
+  }, [searchParams]);
 
   const {
     register,

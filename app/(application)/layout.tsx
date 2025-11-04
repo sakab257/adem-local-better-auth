@@ -11,9 +11,9 @@ export default function RootLayout({
     return (
         <SidebarProvider>
             <AppSidebar />
-            <main className='w-full h-svh overflow-hidden flex flex-col'>
+            <main className='w-full h-svh overflow-hidden flex flex-col pb-2 px-2'>
                 <AppHeader />
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto rounded-2xl border-sidebar-border border">
                     {children}
                 </div>
             </main>

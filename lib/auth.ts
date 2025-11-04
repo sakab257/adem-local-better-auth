@@ -11,23 +11,41 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
 
-    // ✅ Envoi d'email pour reset password
-    sendResetPassword: async ({ user, url, token }, request) => {
+    // Envoi d'email pour reset password
+    sendResetPassword: async ({ user, url }) => {
       await sendPasswordResetEmail(user.email, user.name, url);
     },
 
     // Callback après reset password (optionnel)
-    onPasswordReset: async ({ user }, request) => {
-      console.log(`✅ Password reset successful for: ${user.email}`);
+    onPasswordReset: async ({ user }) => {
+      console.log(`Mot de passe réinitialisé pour : ${user.email}`);
     },
   },
 
   emailVerification: {
-    sendVerificationEmail: async ({ user, url, token }, request) => {
-      // ✅ Envoi d'email de vérification (mock par défaut, Resend si configuré)
+    sendVerificationEmail: async ({ user, url }) => {
+      // Envoi d'email de vérification (mock par défaut, Resend si configuré)
       await sendVerificationEmail(user.email, user.name, url);
     },
     sendOnSignUp: true,
+  },
+
+  // Configuration de la gestion des utilisateurs
+  user: {
+    changeEmail: {
+      enabled: true,
+      // Envoie un email de vérification à l'ANCIEN email (sécurité)
+      // Après vérification, BetterAuth change l'email et envoie confirmation au nouveau
+      sendChangeEmailVerification: async ({ user, newEmail, url }) => {
+        await sendVerificationEmail(user.email, user.name, url);
+      },
+    },
+  },
+
+  rateLimit: {
+    enabled: true,
+    window: 10,
+    max: 100,
   },
 
   // Connexion à la base de données via Drizzle

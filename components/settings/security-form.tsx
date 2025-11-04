@@ -38,8 +38,8 @@ export function SecurityForm() {
             reset();
             setIsLoading(false);
           },
-          onError: (ctx) => {
-            toast.error(ctx.error.message || "Erreur lors du changement de mot de passe");
+          onError: () => {
+            toast.error("Erreur lors du changement de mot de passe");
             setIsLoading(false);
           },
         },

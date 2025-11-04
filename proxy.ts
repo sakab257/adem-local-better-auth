@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { auth } from './lib/auth'
 
 // Définir les routes publiques et d'authentification
-const authRoutes = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password']
+const authRoutes = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password', '/auth/reset-password']
 
 
 export async function proxy(request: NextRequest) {
@@ -30,8 +30,17 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(signInUrl)
     }
 
-    // Rediriger les utilisateurs connectés hors des pages d'auth
-    if (isAuthRoute && session?.user) {
+    // ⚠️ SÉCURITÉ : Vérifier que l'email est vérifié
+    // Si l'utilisateur est connecté MAIS email non vérifié, bloquer l'accès
+    if (isProtectedRoute && session?.user && !session.user.emailVerified) {
+        const signInUrl = new URL('/auth/sign-in', request.url)
+        signInUrl.searchParams.set('error', 'email-not-verified')
+        signInUrl.searchParams.set('message', 'Veuillez vérifier votre adresse email pour continuer')
+        return NextResponse.redirect(signInUrl)
+    }
+
+    // Rediriger les utilisateurs connectés (avec email vérifié) hors des pages d'auth
+    if (isAuthRoute && session?.user && session.user.emailVerified) {
         return NextResponse.redirect(new URL('/', request.url))
     }
 
