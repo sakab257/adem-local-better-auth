@@ -3,7 +3,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Suspense } from "react";
 
 export const metadata = {
-  title: "Réinitialiser le mot de passe - Auth Template",
+  title: "Réinitialiser le mot de passe - ADEM",
   description: "Réinitialisez votre mot de passe",
 };
 

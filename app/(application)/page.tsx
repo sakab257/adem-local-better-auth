@@ -2,7 +2,7 @@ import ProfileClient from "@/components/profile-client";
 
 
 export const metadata = {
-  title: "Accueil - Auth Template",
+  title: "Accueil - ADEM",
   description: "Accueil",
 };
 
