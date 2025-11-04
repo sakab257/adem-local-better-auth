@@ -113,21 +113,21 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 **Objectif** : Débloquer la gestion des utilisateurs et permissions
 
 1. **Créer les migrations Drizzle RBAC**
-   - Tables : `roles`, `permissions`, `rolePermissions`, `userRoles`, `userStatus`, `auditLogs`, `orgUnits`
-   - Scripts : `pnpm db:generate` → `pnpm db:migrate`
+   ✅ Tables : `roles`, `permissions`, `rolePermissions`, `userRoles`, `userStatus`, `auditLogs`, `orgUnits`
+   ✅ Scripts : `pnpm db:generate` → `pnpm db:migrate`
 
 2. **Seed initial RBAC**
-   - Rôles ADEM : Admin, Moderateur, Bureau, CA, SuperCorrecteur, Correcteur, Membre, En attente
-   - Permissions granulaires : `events:create`, `resources:approve`, `members:invite`, etc.
-   - Script : `pnpm db:seed` + `pnpm admin:promote <email>` pour créer 1er admin
+   ✅ Rôles ADEM : Admin, Moderateur, Bureau, CA, SuperCorrecteur, Correcteur, Membre, En attente
+   ✅ Permissions granulaires : `events:create`, `resources:approve`, `members:invite`, etc.
+   ✅ Script : `pnpm db:seed` + `pnpm admin:promote <email>` pour créer 1er admin
 
 3. **Intégrer Better-Auth Admin Plugin**
-   - Server : `admin()` plugin dans `lib/auth.ts`
-   - Client : `adminClient()` plugin dans `lib/auth-client.ts`
-   - Migration : `npx @better-auth/cli migrate`
+   ✅ Server : `admin()` plugin dans `lib/auth.ts`
+   ✅ Client : `adminClient()` plugin dans `lib/auth-client.ts`
+   ✅ Migration : `npx @better-auth/cli migrate`
 
 4. **Policy Layer & Guards**
-   - Utils : `hasRole(user, 'Admin')`, `can(user, 'permission')`
+   ✅ Utils : `hasRole(user, 'Admin')`, `can(user, 'permission')`
    - Server actions : Guards dans toutes les actions sensibles
    - Middleware : Protection `/admin/**` et `/bureau/**` par rôle
 

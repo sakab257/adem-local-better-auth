@@ -1,6 +1,6 @@
 "use client";
 
-import { BookText, CalendarDays, GraduationCap, Info, LayoutDashboard, ListTodo, Logs, NotebookPen, Settings, ShieldUser, CirclePlus } from "lucide-react"
+import { BookText, CalendarDays, GraduationCap, Info, LayoutDashboard, ListTodo, Logs, NotebookPen, Settings, ShieldUser, CirclePlus, FileSymlink } from "lucide-react"
 
 import {
     SidebarContent,
@@ -68,6 +68,16 @@ const moderation = {
             url: "/courses",
             icon: BookText,
         },
+        {
+            title: "Ajouter",
+            url: "/add",
+            icon: CirclePlus,
+        },
+        {
+            title: "Invitations",
+            url: "/invitations",
+            icon: FileSymlink,
+        }
     ],
     administration: [
         {

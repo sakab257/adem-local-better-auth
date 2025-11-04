@@ -4,6 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db/drizzle";
 import { schema } from "@/db/schema";
 import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
+import { admin } from "better-auth/plugins";
 
 export const auth = betterAuth({
   // Activation de l'authentification par email/mot de passe
@@ -55,5 +56,8 @@ export const auth = betterAuth({
   }),
 
   // Plugin pour Next.js (gestion des cookies)
-  plugins: [nextCookies()],
+  plugins: [
+    admin(),
+    nextCookies(),
+  ],
 });
