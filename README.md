@@ -13,11 +13,11 @@
 - [x] Email verification (avec toggle mock/real)
 - [x] Forgot password / Reset password
 - [x] Session management automatique
-- [x] Protection des routes (middleware)
+- [x] Protection des routes (proxy)
 - [x] Remember me / Persistent sessions
 
 ### ✅ Gestion du profil
-- [x] Modifier nom et email
+- [x] Modifier nom et email (avec verification email actuelle et nouvelle)
 - [x] Changer le mot de passe
 - [x] Supprimer le compte
 
