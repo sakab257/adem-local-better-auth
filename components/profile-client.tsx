@@ -6,10 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Mail, User, Settings } from "lucide-react";
-import Link from "next/link";
-import SignOutButton from "@/components/auth/sign-out-button";
-
+import { Mail, User} from "lucide-react";
 
 export default function ProfileClient() {
   const router = useRouter();
@@ -91,6 +88,7 @@ export default function ProfileClient() {
               <div>
                 <p className="text-muted-foreground text-xs">Email</p>
                 <p className="font-medium">{session.user.email}</p>
+                
               </div>
             </div>
 

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Spinner } from "@/components/ui/spinner";
+import { HeartHandshake } from "lucide-react";
 
 export function SignInForm() {
   const router = useRouter();
@@ -79,9 +80,13 @@ export function SignInForm() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Connexion</CardTitle>
-        <CardDescription>
-          Connectez-vous à votre compte pour suivre vos entraînements
+        <CardTitle className="flex items-center justify-center gap-2">
+          <HeartHandshake />
+            As-Salāmu ʿAlaykum 
+          <HeartHandshake />
+        </CardTitle>
+        <CardDescription className="text-center">
+          {`Bienvenue sur le site de l'ADEM !`}
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -11,7 +11,7 @@ export const metadata = {
 export default function SignInPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <Suspense fallback={<div className="flex gap-1 items-center"> <Spinner /> Chargment...</div>}>
+      <Suspense fallback={<div className="flex gap-1 items-center"> <Spinner /> Chargement...</div>}>
         <SignInForm />
       </Suspense>
     </div>
