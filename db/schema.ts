@@ -10,6 +10,7 @@ export const user = pgTable("user", {
     email: text("email").notNull().unique(),
     emailVerified: boolean("email_verified").default(false).notNull(),
     image: text("image"),
+    role:text("role"),
     status: text("status", { enum: ["active", "pending", "suspended", "banned"] }).default("pending").notNull(),
     // Better-Auth Admin Plugin fields
     banned: boolean("banned").default(false),

@@ -42,8 +42,8 @@ export function SignUpForm() {
             router.push("/");
             router.refresh();
           },
-          onError: (ctx) => {
-            toast.error(ctx.error.message || "Impossible de créer le compte. L'email est peut-être déjà utilisé.");
+          onError: () => {
+            toast.error("Impossible de créer le compte. Veuillez réessayez ultérieurement.");
             setIsLoading(false);
           },
         },
