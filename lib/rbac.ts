@@ -348,5 +348,14 @@ export async function isModerator(userId: string): Promise<boolean> {
  * Vérifier si un user fait partie du bureau/CA
  */
 export async function isBureauOrCA(userId: string): Promise<boolean> {
-  return hasAnyRole(userId, ["Admin", "Bureau", "CA"]);
+  return hasAnyRole(userId, ["Admin", "Moderateur", "Bureau", "CA"]);
+}
+
+
+/**
+ * Vérifier si un user fait partie du bureau/CA
+ */
+
+export async function isCorrector(userId: string): Promise<boolean> {
+  return hasAnyRole(userId, ["Admin", "Moderateur", "Correcteur", "SuperCorrecteur"]);
 }

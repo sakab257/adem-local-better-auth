@@ -1,6 +1,6 @@
 "use client";
 
-import { BookText, CalendarDays, GraduationCap, Info, LayoutDashboard, ListTodo, Logs, NotebookPen, Settings, ShieldUser, CirclePlus, FileSymlink } from "lucide-react"
+import { BookText, CalendarDays, GraduationCap, Info, LayoutDashboard, ListTodo, Logs, NotebookPen, Settings, ShieldUser, CirclePlus, FileSymlink, PencilLine, SpellCheck } from "lucide-react"
 
 import {
     SidebarContent,
@@ -14,6 +14,16 @@ import {
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+
+interface LinkSidebarProps {
+    userPermissions: {
+        isAdmin: boolean;
+        isModerator: boolean;
+        isBureauOrCA: boolean;
+        isCorrector: boolean;
+    };
+}
+
 
 
 // Menu items.
@@ -61,6 +71,21 @@ const audit = [
     }
 ]
 
+const gestion = [
+    {
+        title: "écrire",
+        url: "/write",
+        icon: PencilLine,
+    },
+    {
+        title: "Corriger",
+        url: "/correct",
+        icon: SpellCheck,
+    }
+
+    
+]
+
 const moderation = {
     organization: [
         {
@@ -101,7 +126,7 @@ const others = [
     },
 ]
 
-const LinkSidebar = () => {
+const LinkSidebar = ({ userPermissions }: LinkSidebarProps) => {
     const pathname = usePathname();
 
     return (
@@ -119,7 +144,6 @@ const LinkSidebar = () => {
                         <SidebarMenuButton
                             asChild
                             isActive={isActive}
-                            className="transition-all"
                         >
                             <Link href={item.url}>
                                 <item.icon />
@@ -159,75 +183,111 @@ const LinkSidebar = () => {
             </SidebarGroupContent>
             </SidebarGroup>
 
-            <SidebarGroup>
-            <SidebarGroupLabel>Audit</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <SidebarMenu>
-                {audit.map((item) => {
-                    const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
+            {/* Section Audit - visible uniquement pour Admin/Moderateur */}
+            {userPermissions.isModerator && (
+                <SidebarGroup>
+                <SidebarGroupLabel>Audit</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                    {audit.map((item) => {
+                        const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
 
-                    return (
-                        <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={isActive}
-                            className="transition-all"
-                        >
-                            <Link href={item.url}>
-                                <item.icon />
-                                <span className="capitalize text-xs">{item.title}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    );
-                })}
-                </SidebarMenu>
-            </SidebarGroupContent>
-            </SidebarGroup>
+                        return (
+                            <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={isActive}
+                                className="transition-all"
+                            >
+                                <Link href={item.url}>
+                                    <item.icon />
+                                    <span className="capitalize text-xs">{item.title}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        );
+                    })}
+                    </SidebarMenu>
+                </SidebarGroupContent>
+                </SidebarGroup>
+            )}
 
-            <SidebarGroup>
-            <SidebarGroupLabel>Modération</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <SidebarMenu>
-                {moderation.organization.map((item) => {
-                    const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
+            {/* Section Gestion - visible pour ceux qui peuvent gérer les ressources */}
+            {userPermissions.isCorrector && (
+                <SidebarGroup>
+                <SidebarGroupLabel>Gestion</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                    {gestion.map((item) => {
+                        const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
 
-                    return (
-                        <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={isActive}
-                            className="transition-all"
-                        >
-                            <Link href={item.url}>
-                                <item.icon />
-                                <span className="capitalize text-xs">{item.title}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    );
-                })}
-                {moderation.administration.map((item) => {
-                    const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
+                        return (
+                            <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={isActive}
+                                className="transition-all"
+                            >
+                                <Link href={item.url}>
+                                    <item.icon />
+                                    <span className="capitalize text-xs">{item.title}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        );
+                    })}
+                    </SidebarMenu>
+                </SidebarGroupContent>
+                </SidebarGroup>
+            )}
 
-                    return (
-                        <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={isActive}
-                            className="transition-all"
-                        >
-                            <Link href={item.url}>
-                                <item.icon />
-                                <span className="capitalize text-xs">{item.title}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    );
-                })}
-                </SidebarMenu>
-            </SidebarGroupContent>
-            </SidebarGroup>
+            {/* Section Modération - visible uniquement pour Bureau/CA/Admin */}
+            {userPermissions.isBureauOrCA && (
+                <SidebarGroup>
+                <SidebarGroupLabel>Modération</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                    {moderation.organization.map((item) => {
+                        const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
+
+                        return (
+                            <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={isActive}
+                                className="transition-all"
+                            >
+                                <Link href={item.url}>
+                                    <item.icon />
+                                    <span className="capitalize text-xs">{item.title}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        );
+                    })}
+                    {/* Administration visible uniquement pour Admin */}
+                    {userPermissions.isAdmin && moderation.administration.map((item) => {
+                        const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
+
+                        return (
+                            <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={isActive}
+                                className="transition-all"
+                            >
+                                <Link href={item.url}>
+                                    <item.icon />
+                                    <span className="capitalize text-xs">{item.title}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        );
+                    })}
+                    </SidebarMenu>
+                </SidebarGroupContent>
+                </SidebarGroup>
+            )}
 
             <SidebarGroup className="mt-auto pb-2">
             <SidebarGroupLabel>Autres</SidebarGroupLabel>

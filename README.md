@@ -4,18 +4,19 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 
 ## 📊 État du Projet
 
-**Score Global : 5.5/10** (55/100)
+**Score Global : 7.5/10** (75/100)
 
-**Statut** : Fondations d'authentification solides, mais RBAC et fonctionnalités métier absentes.
+**Statut** : Fondations RBAC complètes + Auth solides. Prêt pour développement des pages métier.
 
 | Catégorie | Score | État |
 |-----------|-------|------|
-| Architecture & Structure | 8/10 | ✅ Bien organisé |
-| Authentification (Better-Auth) | 6/10 | ⚠️ Base OK, Admin plugin manquant |
-| Base de données (Drizzle) | 5/10 | ⚠️ Schéma OK, migrations absentes |
-| Sécurité | 7/10 | ⚠️ Auth OK, RBAC absent |
-| Fonctionnalités | 3/10 | ❌ Seulement auth/settings |
-| DevX & Tooling | 4/10 | ❌ Scripts DB manquants |
+| Architecture & Structure | 8.5/10 | ✅ Excellente organisation |
+| Authentification (Better-Auth) | 8/10 | ✅ Plugins Admin activés & configurés |
+| Base de données (Drizzle) | 8/10 | ✅ Schéma RBAC complet + migrations appliquées |
+| Sécurité & RBAC | 8/10 | ✅ Guards exhaustifs + seed complet |
+| Fonctionnalités Métier | 4/10 | ⚠️ Seulement auth/settings, pages admin à créer |
+| DevX & Tooling | 7/10 | ✅ Scripts DB, ⚠️ tests absents |
+| Emails | 9/10 | ✅ Mock/Resend excellent |
 
 ---
 
@@ -42,6 +43,16 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 - ✅ Changement email (vérification sur ancien email pour sécurité)
 - ✅ Rate limiting (5 tentatives/60s)
 - ✅ Déconnexion
+- ✅ Better-Auth Admin plugin activé (server + client)
+
+### RBAC (Rôles & Permissions)
+- ✅ Schéma DB complet : `roles`, `permissions`, `rolePermissions`, `userRoles`, `auditLogs`, `orgUnits`
+- ✅ Migrations appliquées (tables créées en DB)
+- ✅ Seed initial : 7 rôles ADEM + 30 permissions granulaires
+- ✅ Utilisateur Admin créé
+- ✅ Guards exhaustifs : `hasRole()`, `can()`, `requireRole()`, `requirePermission()` (avec cache)
+- ✅ Helpers : `isAdmin()`, `isModerator()`, `isBureauOrCA()`, `isCorrector()`
+- ✅ Sidebar conditionnelle selon rôle utilisateur
 
 ### Paramètres Utilisateur
 - ✅ Modification nom
@@ -55,9 +66,10 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 - ✅ Data Access Layer (`verifySession()`) pour server actions
 - ✅ DTO (`sanitizeUser()`) pour exposer uniquement données publiques
 - ✅ Cascade delete (sessions/accounts supprimés avec l'utilisateur)
+- ✅ Policy layer RBAC complet (lib/rbac.ts - 361 lignes)
 
 ### UI/UX
-- ✅ Sidebar responsive avec navigation organisée par sections
+- ✅ Sidebar responsive avec navigation organisée par sections RBAC
 - ✅ Header avec SidebarTrigger
 - ✅ Dark mode / Light mode (next-themes)
 - ✅ Toast notifications (Sonner)
@@ -71,145 +83,209 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 
 ---
 
-## ❌ Ce qui Manque (Bloquants)
+## ❌ Ce qui Manque
 
-### Critique (P0 - Bloquants)
-1. **❌ Migrations Drizzle** : Aucune migration créée/appliquée → DB non synchronisée
-2. **❌ Scripts DB** : `db:generate`, `db:migrate`, `db:push`, `db:seed`, `db:studio` absents
-3. **❌ Better-Auth Admin Plugin** : Non configuré (server + client)
-4. **❌ Tables RBAC** : `roles`, `permissions`, `rolePermissions`, `userRoles` manquantes
-5. **❌ Seed initial** : Pas de données de démarrage (rôles ADEM, permissions, admin)
+### Critique (P0 - Prochaine Priorité)
+1. **❌ Middleware protection par rôle** : Routes `/admin/**` et `/bureau/**` accessibles à tous les connectés (pas de check rôle)
+2. **❌ Server actions Admin** : `server/members.ts` (list, update, setRole, ban) et `server/roles.ts` (CRUD) manquants
+3. **❌ Pages Admin** : `/admin/members` (table + actions) et `/admin/roles` (CRUD permissions) absentes
+4. **❌ Audit logging** : Table `auditLogs` créée mais fonction `logAudit()` non implémentée
+5. **❌ Script admin:promote** : Utilitaire pour promouvoir user en Admin (pour usage futur)
 
-### Important (P1 - Architecture)
-6. **❌ Guards RBAC** : `hasRole(user, 'Admin')` et `can(user, 'permission')` absents
-7. **❌ Middleware RBAC** : Pas de protection `/admin/**` ou `/bureau/**` par rôle
-8. **❌ Table `auditLogs`** : Traçabilité des actions admin manquante
-9. **❌ Table `orgUnits`** : Hiérarchie Année/Filière/Matière pour ressources
-10. **❌ Enum `userStatus`** : Statuts ADEM (Active, En attente, etc.)
+### Important (P1 - Pages Métier)
+6. **❌ Gestion Membres (/admin/members)** : Table filtrable/triable, actions inline (set role, reset pwd, ban/unban)
+7. **❌ Gestion Rôles (/admin/roles)** : CRUD rôles/permissions style Discord avec checkboxes groupées
+8. **❌ Invitations (/bureau/invitations)** : Import CSV/XLSX/TXT avec preview + validation + batch commit
+9. **❌ Ajout membre unique (/bureau/add-member)** : Création + envoi OTP + force reset on first login
+10. **❌ Dashboard** : Citation du jour, 4 KPIs, événements à venir, tâches récentes, quick actions
 
-### Fonctionnalités Métier (P2)
-11. **❌ Gestion Membres** : CRUD utilisateurs (list, filters, set role, reset pwd, ban/unban)
-12. **❌ Gestion Rôles** : CRUD rôles/permissions style Discord
-13. **❌ Invitations** : Import CSV/XLSX/TXT avec preview + whitelist
-14. **❌ Dashboard** : Citation du jour, KPIs, événements, tâches, quick actions
-15. **❌ Calendrier** : CRUD événements (Admin/Bureau/CA)
-16. **❌ Tâches** : Kanban personnel + chart progression
-17. **❌ Cours** : Hiérarchie + éditeur Tiptap + workflow validation (3 Correctors + SuperCorrector)
-18. **❌ Exercices** : Par TD/matière/filière avec indices & corrections
-19. **❌ Annales** : Mode simulation examen avec minuteur
-20. **❌ Feedback** : Formulaire de retour utilisateurs
+### Fonctionnalités Avancées (P2)
+11. **❌ Calendrier** : CRUD événements (Admin/Bureau/CA) + inscriptions membres
+12. **❌ Tâches** : Kanban personnel (To Do / In Progress / Done) + chart progression
+13. **❌ Cours** : Hiérarchie Année → Filière → Matière + éditeur Tiptap + workflow validation (3 Correctors, bypass SuperCorrector)
+14. **❌ Exercices** : Par TD/matière/filière avec indices & corrections
+15. **❌ Annales** : Mode simulation examen avec minuteur + indices/corrections
+16. **❌ Feedback** : Formulaire de retour utilisateurs (titre, description, type)
 
 ### DevX & Qualité (P3)
-21. **❌ Tests** : Aucun test (unitaire, intégration, e2e)
-22. **❌ Documentation** : Fonctions et composants non documentés
-23. **❌ CI/CD** : Pas de pipeline
-24. **❌ Monitoring** : Pas de logging/alerting
+17. **❌ Tests** : Aucun test (unitaire guards RBAC, intégration server actions, e2e)
+18. **❌ CI/CD** : Pas de pipeline GitHub Actions (lint/build/test)
+19. **❌ Logging structuré** : Pas de Pino/Winston avec niveaux (info/warn/error)
+20. **❌ Documentation code** : Fonctions complexes non documentées (JSDoc)
 
 ---
 
 ## 🚀 Prochaines Étapes (Ordre Recommandé)
 
-### Phase 1 : RBAC & Admin (Priorité MAX)
+### ✅ Phase 1 : RBAC & Admin DB (COMPLÉTÉE)
 **Objectif** : Débloquer la gestion des utilisateurs et permissions
 
-1. **Créer les migrations Drizzle RBAC**
-   ✅ Tables : `roles`, `permissions`, `rolePermissions`, `userRoles`, `userStatus`, `auditLogs`, `orgUnits`
-   ✅ Scripts : `pnpm db:generate` → `pnpm db:migrate`
+1. ✅ **Migrations Drizzle RBAC** : Tables créées (roles, permissions, rolePermissions, userRoles, auditLogs, orgUnits)
+2. ✅ **Seed initial RBAC** : 7 rôles ADEM + 30 permissions granulaires appliqués
+3. ✅ **Better-Auth Admin Plugin** : Activé (server + client) + colonnes ajoutées
+4. ✅ **Policy Layer & Guards** : `hasRole()`, `can()`, `requireRole()`, `requirePermission()` implémentés (lib/rbac.ts)
+5. ✅ **Utilisateur Admin créé** : Prêt pour tests
 
-2. **Seed initial RBAC**
-   ✅ Rôles ADEM : Admin, Moderateur, Bureau, CA, SuperCorrecteur, Correcteur, Membre, En attente
-   ✅ Permissions granulaires : `events:create`, `resources:approve`, `members:invite`, etc.
-   ✅ Script : `pnpm db:seed` + `pnpm admin:promote <email>` pour créer 1er admin
-
-3. **Intégrer Better-Auth Admin Plugin**
-   ✅ Server : `admin()` plugin dans `lib/auth.ts`
-   ✅ Client : `adminClient()` plugin dans `lib/auth-client.ts`
-   ✅ Migration : `npx @better-auth/cli migrate`
-
-4. **Policy Layer & Guards**
-   ✅ Utils : `hasRole(user, 'Admin')`, `can(user, 'permission')`
-   - Server actions : Guards dans toutes les actions sensibles
-   - Middleware : Protection `/admin/**` et `/bureau/**` par rôle
-
-5. **Pages Admin**
-   - `/admin/members` : Table filtrable/triable, actions inline (set role, reset pwd, ban)
-   - `/admin/roles` : CRUD rôles/permissions style Discord
-   - Server actions : `createUser`, `listUsers`, `updateUser`, `setRole`, `banUser`, etc.
-
-**Durée estimée** : 3-5 jours
-**Délivrables** : RBAC complet + gestion membres/rôles fonctionnelle
+**Statut** : ✅ Fondations RBAC complètes
 
 ---
 
-### Phase 2 : Invitations & Whitelist (Bureau/CA)
-**Objectif** : Permettre l'onboarding massif des membres
-
-1. **Parser CSV/XLSX/TXT**
-   - Upload → parsing → validation → preview (table avec erreurs en rouge)
-   - Colonnes : email, role, status
-
-2. **Batch Import**
-   - Commit en transaction
-   - Auto-assign role + status si match whitelist à l'inscription
-
-3. **Page Bureau/CA**
-   - `/bureau/invitations` : Upload + preview + import
-   - `/bureau/add-member` : Création unique + envoi OTP + force reset on first login
-
-**Durée estimée** : 2-3 jours
-
----
-
-### Phase 3 : Ressources (Cours, Exercices, Annales)
-**Objectif** : MVP éditeur + workflow validation
-
-1. **Tables DB**
-   - `courses`, `chapters`, `exercises`, `exams`, `validations`
-
-2. **Éditeur Tiptap**
-   - Extensions : annotations, code blocks, footnotes
-   - Save/auto-save
-
-3. **Workflow Validation**
-   - 3 validations Corrector → publié
-   - Bypass SuperCorrector
-   - Notifications (optionnel)
-
-**Durée estimée** : 5-7 jours
-
----
-
-### Phase 4 : Dashboard & Calendrier
-**Objectif** : MVP dashboard + gestion événements
-
-1. **Dashboard**
-   - Citation du jour (API externe ou DB)
-   - 4 KPI cards (membres, événements à venir, ressources, tâches complétées)
-   - Prochains événements (3 cards avec inscription)
-   - Tâches récentes (3 dernières)
-   - Quick actions (boutons raccourcis)
-
-2. **Calendrier**
-   - CRUD événements (Admin/Bureau/CA only)
-   - Inscriptions membres
-   - Notifications (optionnel)
+### Phase 2 : Pages Admin & Protection (Priorité P0 - EN COURS)
+**Objectif** : Exploiter l'infrastructure RBAC avec les pages de gestion
 
 **Durée estimée** : 3-4 jours
 
+1. **Middleware protection par rôle (½ jour)**
+   ```typescript
+   // proxy.ts : Ajouter checks RBAC
+   if (pathname.startsWith('/admin/')) {
+       const userIsAdmin = await isAdmin(session.user.id);
+       if (!userIsAdmin) return NextResponse.redirect('/');
+   }
+   if (pathname.startsWith('/bureau/')) {
+       const hasAccess = await isBureauOrCA(session.user.id);
+       if (!hasAccess) return NextResponse.redirect('/');
+   }
+   ```
+
+2. **Audit logging helper (½ jour)**
+   - Créer `lib/audit.ts` avec fonction `logAudit(userId, action, resource, metadata)`
+   - Intégrer dans toutes les server actions sensibles
+
+3. **Page /admin/members (1.5 jours)**
+   - Table DataTable shadcn/ui avec pagination/filters/sort
+   - Colonnes : avatar, nom, email, rôles, statut, date inscription, actions
+   - Actions inline :
+     - Changer rôle (Dialog avec Select multi-rôles)
+     - Reset password (envoie email reset)
+     - Ban/Unban user (avec raison + durée optionnelle)
+   - Server actions : `server/members.ts`
+     - `listUsers(filters, pagination)` → pagination Drizzle
+     - `setUserRoles(userId, roleIds[])` → avec `logAudit()`
+     - `banUser(userId, reason, expiresAt)` → utilise `auth.api.admin.banUser()`
+     - `unbanUser(userId)` → utilise `auth.api.admin.unbanUser()`
+
+4. **Page /admin/roles (1 jour)**
+   - Liste rôles (cards colorées style Discord avec priority)
+   - CRUD rôles : Dialog create/edit avec nom + priority + color picker
+   - Checkboxes permissions groupées par resource (events, resources, members, etc.)
+   - Server actions : `server/roles.ts`
+     - `createRole(name, priority, color, permissionIds[])`
+     - `updateRole(roleId, data, permissionIds[])`
+     - `deleteRole(roleId)` → vérifier aucun user n'a ce rôle
+
+5. **Script admin:promote (¼ jour)**
+   - Créer `scripts/promote-admin.ts` pour usage futur
+   - Ajouter script `"admin:promote": "tsx scripts/promote-admin.ts"` dans package.json
+
+**Délivrables** : Gestion membres + rôles fonctionnelle avec protection middleware
+
 ---
 
-### Phase 5 : Tâches & Feedback
-**Objectif** : Kanban perso + retour utilisateurs
-
-1. **Tâches**
-   - Kanban personnel (To Do / In Progress / Done)
-   - Chart progression (% complété)
-
-2. **Feedback**
-   - Formulaire simple (titre, description, type)
-   - Stockage DB ou email vers admins
+### Phase 3 : Invitations & Whitelist (Bureau/CA)
+**Objectif** : Permettre l'onboarding massif des membres
 
 **Durée estimée** : 2-3 jours
+
+1. **Parser CSV/XLSX/TXT (1 jour)**
+   - Créer `lib/parsers.ts` avec helpers pour CSV (papaparse), XLSX (xlsx), TXT
+   - Upload → parsing → validation email + rôle + statut
+   - Preview avec DataTable (erreurs en rouge, warnings en orange)
+   - Colonnes fichier : email, role (optionnel), status (optionnel)
+
+2. **Page /bureau/invitations (1 jour)**
+   - Upload zone (drag & drop ou file input)
+   - Preview DataTable avec filtres (valides/erreurs)
+   - Actions : "Tout importer" (transaction) ou "Importer sélection"
+   - Server action : `server/invitations.ts`
+     - `importBatch(rows[])` → transaction Drizzle + audit logs
+     - Auto-assign role "Membre" + status "active" si pas précisé
+
+3. **Page /bureau/add-member (½ jour)**
+   - Form : email, nom, rôle (Select), statut (Select)
+   - Génère mot de passe temporaire
+   - Envoie email avec lien reset password
+   - Flag `forcePasswordReset: true` (à implémenter dans schema user)
+   - Server action : `server/invitations.ts`
+     - `createMember(data)` → utilise `auth.api.admin.createUser()`
+
+**Délivrables** : Import CSV/XLSX + création membre unique fonctionnels
+
+---
+
+### Phase 4 : Dashboard & Quick Wins
+**Objectif** : Page d'accueil fonctionnelle + retours utilisateurs
+
+**Durée estimée** : 2-3 jours
+
+1. **Dashboard (/)**
+   - Citation du jour (hardcodée ou API gratuite type quotable.io)
+   - 4 KPI cards avec icônes :
+     - Total membres actifs (count users où status = "active")
+     - Événements à venir (count events où date > now)
+     - Ressources publiées (count resources où published = true)
+     - Tâches complétées aujourd'hui (count tasks où status = "done" et updatedAt = today)
+   - Section "Prochains événements" (3 cards avec date + bouton "S'inscrire")
+   - Section "Tâches récentes" (3 dernières tâches)
+   - Quick actions : boutons vers pages principales
+
+2. **Page Feedback (/feedback)**
+   - Form simple : titre (Input), description (Textarea), type (Select : Bug, Suggestion, Autre)
+   - Server action : `server/feedback.ts` → stockage DB table `feedback`
+   - Toast confirmation "Merci pour votre retour !"
+
+**Délivrables** : Dashboard informatif + système de feedback
+
+---
+
+### Phase 5 : Ressources (Cours, Exercices, Annales)
+**Objectif** : MVP éditeur + workflow validation
+
+**Durée estimée** : 5-7 jours
+
+1. **Tables DB (1 jour)**
+   - `courses` (titre, année, filière, matière via orgUnits FK)
+   - `chapters` (titre, contenu JSON Tiptap, courseId FK)
+   - `exercises` (enoncé, indices, correction, matière FK)
+   - `exams` (titre, durée, matière FK, questions[])
+   - `validations` (chapterId, validatorId, status, commentaire)
+
+2. **Éditeur Tiptap (2-3 jours)**
+   - Installer Tiptap + extensions (StarterKit, CodeBlock, Typography, Placeholder)
+   - Créer composant `<TiptapEditor />` réutilisable
+   - Extensions custom : annotations (commentaires inline), footnotes
+   - Save manuel + auto-save toutes les 30s (debounced)
+   - Preview mode vs Edit mode
+
+3. **Workflow Validation (2 jours)**
+   - Statut chapter : "draft", "pending", "published"
+   - 3 validations Corrector requises → auto-publish
+   - SuperCorrector peut bypass (publish directement)
+   - Page `/resources/validate` : Liste chapters pending avec bouton "Valider/Rejeter"
+   - Notifications email (optionnel) aux auteurs
+
+**Délivrables** : Système de cours/exercices avec validation collaborative
+
+---
+
+### Phase 6 : Calendrier & Tâches
+**Objectif** : Gestion événements + kanban personnel
+
+**Durée estimée** : 3-4 jours
+
+1. **Calendrier (/calendar)**
+   - CRUD événements (Admin/Bureau/CA only via guards)
+   - Affichage calendrier (lib react-big-calendar ou fullcalendar)
+   - Inscriptions membres (table `eventRegistrations`)
+   - Notifications email avant événement (optionnel)
+
+2. **Tâches (/tasks)**
+   - Kanban 3 colonnes (To Do / In Progress / Done)
+   - Drag & drop (dnd-kit)
+   - Chart progression (Recharts : % tâches complétées)
+   - CRUD tâches : titre, description, priorité, deadline
+
+**Délivrables** : Calendrier événements + kanban personnel fonctionnels
 
 ---
 
@@ -307,14 +383,24 @@ CREATE DATABASE adem;
 \q
 ```
 
-### 5. ⚠️ Générer et appliquer les migrations (À FAIRE)
+### 5. ✅ Générer et appliquer les migrations
 ```bash
-# Actuellement MANQUANT - à implémenter en Phase 1
-pnpm db:generate
-pnpm db:migrate
+pnpm db:generate   # Générer migrations depuis schema.ts
+pnpm db:migrate    # Appliquer migrations en DB
+pnpm db:seed       # Peupler rôles + permissions + admin
 ```
 
-### 6. Lancer le serveur de développement
+### 6. ✅ Créer votre premier admin (si pas déjà fait)
+```bash
+# Option 1 : Créer via script (recommandé)
+pnpm admin:promote votre-email@adem.fr
+
+# Option 2 : Manuellement via Drizzle Studio
+pnpm db:studio
+# Puis insérer dans userRoles : userId + roleId du rôle "Admin"
+```
+
+### 7. Lancer le serveur de développement
 ```bash
 pnpm dev
 ```
@@ -325,7 +411,7 @@ Ouvrir [http://localhost:3000](http://localhost:3000)
 
 ## 📜 Scripts Disponibles
 
-### Actuels
+### Développement
 ```bash
 pnpm dev          # Serveur de développement Next.js
 pnpm build        # Build production
@@ -333,14 +419,18 @@ pnpm start        # Serveur production
 pnpm lint         # ESLint
 ```
 
-### À Ajouter (Phase 1)
+### Base de données (Drizzle)
 ```bash
-pnpm db:generate  # Générer migrations Drizzle depuis schema.ts
-pnpm db:migrate   # Appliquer migrations en DB
-pnpm db:push      # Push schema sans migration (dev rapide)
-pnpm db:seed      # Seed rôles/permissions/admin initial
-pnpm db:studio    # Drizzle Studio (GUI DB)
-pnpm admin:promote <email>  # Promouvoir un user en Admin
+pnpm db:generate              # Générer migrations depuis schema.ts
+pnpm db:migrate               # Appliquer migrations en DB
+pnpm db:push                  # Push schema sans migration (dev rapide)
+pnpm db:seed                  # Seed rôles + permissions (idempotent)
+pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
+```
+
+### Administration
+```bash
+pnpm admin:promote <email>    # Promouvoir un user en Admin
 ```
 
 ---
@@ -350,26 +440,30 @@ pnpm admin:promote <email>  # Promouvoir un user en Admin
 ### Implémentée
 - ✅ Middleware de protection routes (redirect si non connecté)
 - ✅ Vérification email obligatoire
-- ✅ Rate limiting (5 req/60s)
+- ✅ Rate limiting (5 req/60s sur endpoints auth)
 - ✅ Cascade delete (sessions/accounts)
 - ✅ Server-side session checks (`verifySession()`)
 - ✅ DTO pour sanitize données utilisateur
 - ✅ Password hashing (Better-Auth bcrypt)
 - ✅ Regex password fort (maj + min + chiffre)
+- ✅ Guards RBAC exhaustifs (`hasRole()`, `can()`, `requireRole()`, `requirePermission()`)
+- ✅ CSRF tokens (géré nativement par Better-Auth)
 
-### À Implémenter
-- ⚠️ Guards RBAC (hasRole, can)
-- ⚠️ Audit logs (qui a fait quoi, quand)
-- ⚠️ Protection endpoints par rôle
-- ⚠️ CSRF tokens (Better-Auth le gère nativement mais vérifier)
-- ⚠️ Rate limiting sur server actions sensibles
+### À Implémenter (Priorité P0)
+- ⚠️ **Middleware protection par rôle** : Routes `/admin/**` et `/bureau/**` accessibles à tous les connectés
+- ⚠️ **Audit logging actif** : Table créée mais fonction `logAudit()` non utilisée dans server actions
+- ⚠️ **Rate limiting server actions** : Limiter actions sensibles (ban, delete, etc.) par userId + IP
+- ⚠️ **Guards dans server actions** : Aucune server action n'utilise `requireRole()` ou `requirePermission()`
 
-### Risques Identifiés
-1. **Élévation de privilèges** : Sans RBAC, impossible de limiter l'accès aux fonctions admin
-2. **Endpoint leakage** : Routes `/admin/**` et `/bureau/**` non protégées par rôle actuellement
-3. **Pas d'audit trail** : Impossible de tracer les actions sensibles (changement de rôle, ban, etc.)
+### Risques Actuels
+1. **Endpoint leakage** : Routes `/admin/**` et `/bureau/**` non protégées par rôle (seulement par session)
+2. **Pas d'audit trail actif** : Actions sensibles non tracées (impossible de voir qui a banni qui, etc.)
+3. **Rate limiting incomplet** : Pas de protection contre abus sur server actions (spam ban/unban, etc.)
 
-**Mitigation (Phase 1)** : Implémenter RBAC complet + audit logs + guards sur toutes les server actions sensibles.
+**Mitigation (Phase 2)** :
+1. Ajouter checks RBAC dans `proxy.ts` (middleware)
+2. Créer `lib/audit.ts` et l'utiliser dans toutes les server actions sensibles
+3. Implémenter rate limiting avec `@upstash/ratelimit` sur server actions critiques
 
 ---
 
@@ -439,6 +533,28 @@ pnpm admin:promote <email>  # Promouvoir un user en Admin
 
 ---
 
-**Dernière mise à jour** : 2025-11-04
-**Version** : 0.1.0 (MVP Auth uniquement)
-**Prochaine milestone** : Phase 1 - RBAC & Admin (P0)
+---
+
+## 📋 Résumé Exécutif
+
+### Ce qui fonctionne maintenant (v0.2.0)
+✅ **Authentification complète** : Sign up/in, email verification, reset password, change email
+✅ **RBAC complet** : 7 rôles ADEM + 30 permissions + guards exhaustifs
+✅ **DB prête** : Migrations appliquées + seed exécuté + admin créé
+✅ **Sécurité de base** : Middleware session, rate limiting, CSRF, password hashing
+✅ **UI professionnelle** : Sidebar RBAC conditionnelle, dark mode, 19 composants shadcn
+
+### Ce qui manque (critique)
+❌ **Middleware RBAC** : Routes `/admin/**` et `/bureau/**` non protégées par rôle
+❌ **Pages admin** : Gestion membres + gestion rôles (0/2 pages implémentées)
+❌ **Server actions** : Aucune action CRUD membres/rôles/invitations
+❌ **Audit logging** : Table créée mais non utilisée
+
+### Prochaine étape : Phase 2 (3-4 jours)
+🎯 Implémenter pages `/admin/members` et `/admin/roles` + protection middleware + audit logging
+
+---
+
+**Dernière mise à jour** : 2025-11-05
+**Version** : 0.2.0 (Auth + RBAC DB complète)
+**Prochaine milestone** : Phase 2 - Pages Admin (P0)
