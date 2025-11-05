@@ -1,6 +1,6 @@
 "use client";
 
-import { BookText, CalendarDays, GraduationCap, Info, LayoutDashboard, ListTodo, Logs, NotebookPen, Settings, ShieldUser, CirclePlus, FileSymlink, PencilLine, SpellCheck } from "lucide-react"
+import { BookText, CalendarDays, GraduationCap, Info, LayoutDashboard, ListTodo, Logs, NotebookPen, Settings, ShieldUser, CirclePlus, FileSymlink, PencilLine, SpellCheck, Users } from "lucide-react"
 
 import {
     SidebarContent,
@@ -90,8 +90,8 @@ const moderation = {
     organization: [
         {
             title: "Membres",
-            url: "/courses",
-            icon: BookText,
+            url: "/members",
+            icon: Users,
         },
         {
             title: "Ajouter",
@@ -266,7 +266,7 @@ const LinkSidebar = ({ userPermissions }: LinkSidebarProps) => {
                         );
                     })}
                     {/* Administration visible uniquement pour Admin */}
-                    {userPermissions.isAdmin && moderation.administration.map((item) => {
+                    {userPermissions.isModerator && moderation.administration.map((item) => {
                         const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
 
                         return (

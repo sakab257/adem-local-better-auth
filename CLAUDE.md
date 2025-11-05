@@ -22,17 +22,17 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
    - **Me dire ce qu'il manque et les prochaines étapes à faire** : Tu me diras ce qu'il manque et les prochaines étapes à implémenter par rapport au code actuel.
    - **Tout résumer dans le README.md** : Tu me feras un gros résumé, concis, pour dire ce qui est implémenté, les fonctionnalitées et les prochaines étapes à faire. Tu seras concis, je ne veux pas un README de 700+ lignes.
 
-1) **RBAC first** (fondations sécurité + DX) :
-   - **Schéma Drizzle** : tables `roles`, `permissions`, `rolePermissions`, `userRoles`, `userStatus` (enum), `auditLogs`. Prévois `orgUnits` pour Année/Filière/Matière (hiérarchie) dès maintenant pour éviter les migrations cassantes plus tard.  
-   - **Seed** initial des rôles ADEM et des permissions granulaires (ex: `events:create`, `resources:approve`, `members:invite`, etc.).  
-   - **Policy layer** : utilitaires `hasRole(user, ...)` et `can(user, 'permission')` + guards côté **server actions/route handlers** et **useAction** côté client.  
-   - **Middleware/Proxy** Next (server) pour protéger `/admin/**` et `/bureau/**`.  
-   - **Audit logging** minimal (qui a fait quoi, quand, sur quel objet).
+1) ✅ **RBAC first** (fondations sécurité + DX) :
+   ✅ **Schéma Drizzle** : tables `roles`, `permissions`, `rolePermissions`, `userRoles`, `userStatus` (enum), `auditLogs`. Prévois `orgUnits` pour Année/Filière/Matière (hiérarchie) dès maintenant pour éviter les migrations cassantes plus tard.  
+   ✅ **Seed** initial des rôles ADEM et des permissions granulaires (ex: `events:create`, `resources:approve`, `members:invite`, etc.).  
+   ✅ **Policy layer** : utilitaires `hasRole(user, ...)` et `can(user, 'permission')` + guards côté **server actions/route handlers** et **useAction** côté client.  
+   ✅ **Middleware/Proxy** Next (server) pour protéger `/roles/**`.  
+   ✅ **Audit logging** minimal (qui a fait quoi, quand, sur quel objet).
 
 2) **Intégration Better-Auth (plugin Admin)** :
-   - Active `admin()` côté server et `adminClient()` côté client, puis expose des **use-cases** via services : create user, list users (pagination/filters), set role, update user, set user password, ban/unban, impersonate (si dispo).  
+   ✅ Active `admin()` côté server et `adminClient()` côté client, puis expose des **use-cases** via services : create user, list users (pagination/filters), set role, update user, set user password, ban/unban, impersonate (si dispo).  
    - Monte une **page Admin → Membres** exploitant ces endpoints (table filtrable/triable paginée, actions en ligne, modals de changement de rôle & reset password).  
-   - **Page Admin → Rôles** : CRUD des rôles/permissions (UI type Discord), mapping visuel des permissions.
+   ✅ **Page Admin → Rôles** : CRUD des rôles/permissions (UI type Discord), mapping visuel des permissions.
 
 3) **Invitations Bureau/CA** :
    - Upload parseur (`csv/xlsx/txt`) → validation → prévisualisation → commit en batch.  

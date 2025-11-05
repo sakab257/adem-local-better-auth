@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signUpSchema, type SignUpFormData } from "@/lib/validations/auth";
-import { authClient } from "@/lib/auth-client";
+import { signUpWithWhitelist } from "@/server/auth";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -31,23 +31,20 @@ export function SignUpForm() {
     setIsLoading(true);
 
     try {
-      // Utiliser authClient pour mettre à jour le cache client automatiquement
-      await authClient.signUp.email({
+      const result = await signUpWithWhitelist({
+        name: data.name,
         email: data.email,
         password: data.password,
-        name: data.name,
-        fetchOptions: {
-          onSuccess: () => {
-            toast.success("Compte créé avec succès !");
-            router.push("/");
-            router.refresh();
-          },
-          onError: () => {
-            toast.error("Impossible de créer le compte. Veuillez réessayez ultérieurement.");
-            setIsLoading(false);
-          },
-        },
       });
+
+      if (result.success) {
+        toast.success("Compte créé avec succès ! Vérifiez votre email.");
+        router.refresh();
+        router.push("/auth/sign-in");
+      } else {
+        toast.error("Impossible de créer le compte");
+        setIsLoading(false);
+      }
     } catch (error) {
       toast.error("Une erreur s'est produite");
       setIsLoading(false);

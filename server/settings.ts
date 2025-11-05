@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { db } from "@/db/drizzle";
 import { user } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { logAudit, getAuditContext } from "@/lib/audit";
 
 /**
  * Supprimer le compte utilisateur
@@ -17,6 +18,11 @@ export const deleteAccount = async () => {
     // ✅ Utilisation du DAL pour vérifier la session
     const session = await verifySession();
 
+    // Récupérer les infos de l'utilisateur pour le log avant suppression
+    const userRecord = await db.query.user.findFirst({
+      where: eq(user.id, session.user.id),
+    });
+
     // Soft delete : on pourrait ajouter un champ deletedAt dans le schéma
     // Pour l'instant, on va vraiment supprimer l'utilisateur et ses données
 
@@ -26,9 +32,25 @@ export const deleteAccount = async () => {
     // Supprimer l'utilisateur
     await db.delete(user).where(eq(user.id, session.user.id));
 
+    // Audit log
+    const headersList = await headers();
+    const auditContext = getAuditContext(headersList);
+    await logAudit({
+      userId: session.user.id,
+      action: "delete",
+      resource: "user",
+      resourceId: session.user.id,
+      metadata: {
+        action: "self_delete",
+        email: userRecord?.email,
+        name: userRecord?.name,
+      },
+      ...auditContext,
+    });
+
     // Déconnexion (la session sera invalide)
     await auth.api.signOut({
-      headers: await headers(),
+      headers: headersList,
     });
 
     return { success: true };

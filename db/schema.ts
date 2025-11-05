@@ -185,6 +185,20 @@ export const orgUnits = pgTable("org_unit", {
 }));
 
 // ============================================
+// WHITELIST - Invitations
+// ============================================
+
+export const whitelist = pgTable("whitelist", {
+    id: text("id").primaryKey(),
+    email: text("email").notNull().unique(),
+    addedBy: text("added_by")
+        .references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+    emailIdx: index("whitelist_email_idx").on(table.email),
+}));
+
+// ============================================
 // EXPORT SCHEMA
 // ============================================
 
@@ -203,4 +217,6 @@ export const schema = {
     auditLogs,
     // Organisation
     orgUnits,
+    // Whitelist
+    whitelist,
 };

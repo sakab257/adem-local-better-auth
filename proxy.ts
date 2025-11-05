@@ -5,6 +5,7 @@ import { isAdmin, isModerator, isBureauOrCA } from './lib/rbac'
 
 // Définir les routes publiques et d'authentification
 const authRoutes = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password', '/auth/reset-password']
+const pendingRoute = '/pending'
 
 
 export async function proxy(request: NextRequest) {
@@ -20,8 +21,11 @@ export async function proxy(request: NextRequest) {
         pathname.startsWith(route)
     )
 
-    // Par défaut, toutes les routes sont protégées sauf auth et public
-    const isProtectedRoute = !isAuthRoute
+    // Vérifier si c'est la route /pending
+    const isPendingRoute = pathname === pendingRoute
+
+    // Par défaut, toutes les routes sont protégées sauf auth, pending et public
+    const isProtectedRoute = !isAuthRoute && !isPendingRoute
 
     // Rediriger les utilisateurs non connectés des routes protégées
     if (isProtectedRoute && !session?.user) {
@@ -40,7 +44,24 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(signInUrl)
     }
 
-    // Rediriger les utilisateurs connectés (avec email vérifié) hors des pages d'auth
+    // ⚠️ SÉCURITÉ : Rediriger les utilisateurs avec status 'pending' vers /pending
+    // Sauf s'ils sont déjà sur la page /pending ou sur les routes d'auth
+    if (isProtectedRoute && session?.user && session.user.emailVerified) {
+        // Récupérer le statut de l'utilisateur depuis la DB
+        const { db } = await import('./db/drizzle')
+        const { user } = await import('./db/schema')
+        const { eq } = await import('drizzle-orm')
+
+        const userRecord = await db.query.user.findFirst({
+            where: eq(user.id, session.user.id),
+        })
+
+        if (userRecord?.status === 'pending') {
+            return NextResponse.redirect(new URL(pendingRoute, request.url))
+        }
+    }
+
+    // Rediriger les utilisateurs connectés (avec email vérifié et status != pending) hors des pages d'auth
     if (isAuthRoute && session?.user && session.user.emailVerified) {
         return NextResponse.redirect(new URL('/', request.url))
     }
