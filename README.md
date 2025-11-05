@@ -53,6 +53,9 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 - ✅ Guards exhaustifs : `hasRole()`, `can()`, `requireRole()`, `requirePermission()` (avec cache)
 - ✅ Helpers : `isAdmin()`, `isModerator()`, `isBureauOrCA()`, `isCorrector()`
 - ✅ Sidebar conditionnelle selon rôle utilisateur
+- ✅ Page /roles implémentées avec toutes les fonctionnalités
+- ✅ Server action pour roles dans /server/roles.ts
+- ✅ CRUD rôles/permissions style Discord avec checkboxes groupées
 
 ### Paramètres Utilisateur
 - ✅ Modification nom
@@ -67,6 +70,8 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 - ✅ DTO (`sanitizeUser()`) pour exposer uniquement données publiques
 - ✅ Cascade delete (sessions/accounts supprimés avec l'utilisateur)
 - ✅ Policy layer RBAC complet (lib/rbac.ts - 361 lignes)
+- ✅ Middleware protection par rôle** : Routes `/roles/**` non accessibles aux utilisateurs non autorisés
+- ✅ Table `auditLogs` créée et fonction `logAudit()` implémentée (Il faudra l'implementer dans toutes les actions (signup,signin, signout, etc... TOUTES LES ACTIONS))
 
 ### UI/UX
 - ✅ Sidebar responsive avec navigation organisée par sections RBAC
@@ -86,32 +91,26 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 ## ❌ Ce qui Manque
 
 ### Critique (P0 - Prochaine Priorité)
-1. **❌ Middleware protection par rôle** : Routes `/admin/**` et `/bureau/**` accessibles à tous les connectés (pas de check rôle)
-2. **❌ Server actions Admin** : `server/members.ts` (list, update, setRole, ban) et `server/roles.ts` (CRUD) manquants
-3. **❌ Pages Admin** : `/admin/members` (table + actions) et `/admin/roles` (CRUD permissions) absentes
-4. **❌ Audit logging** : Table `auditLogs` créée mais fonction `logAudit()` non implémentée
-5. **❌ Script admin:promote** : Utilitaire pour promouvoir user en Admin (pour usage futur)
+1. **❌ Server actions Admin** : `server/members.ts` (list, update, setRole, ban)
+2. **❌ Pages Admin** : `/members` (table + actions)
+3. **❌ Script admin:promote** : Utilitaire pour promouvoir user en Admin (pour usage futur)
 
 ### Important (P1 - Pages Métier)
-6. **❌ Gestion Membres (/admin/members)** : Table filtrable/triable, actions inline (set role, reset pwd, ban/unban)
-7. **❌ Gestion Rôles (/admin/roles)** : CRUD rôles/permissions style Discord avec checkboxes groupées
-8. **❌ Invitations (/bureau/invitations)** : Import CSV/XLSX/TXT avec preview + validation + batch commit
-9. **❌ Ajout membre unique (/bureau/add-member)** : Création + envoi OTP + force reset on first login
-10. **❌ Dashboard** : Citation du jour, 4 KPIs, événements à venir, tâches récentes, quick actions
+4. **❌ Gestion Membres (/admin/members)** : Table filtrable/triable, actions inline (set role, reset pwd, ban/unban)
+5. **❌ Invitations (/bureau/invitations)** : Import CSV/XLSX/TXT avec preview + validation + batch commit
+6. **❌ Ajout membre unique (/bureau/add-member)** : Création + envoi OTP + force reset on first login
+7. **❌ Dashboard** : Citation du jour, 4 KPIs, événements à venir, tâches récentes, quick actions
 
 ### Fonctionnalités Avancées (P2)
-11. **❌ Calendrier** : CRUD événements (Admin/Bureau/CA) + inscriptions membres
-12. **❌ Tâches** : Kanban personnel (To Do / In Progress / Done) + chart progression
-13. **❌ Cours** : Hiérarchie Année → Filière → Matière + éditeur Tiptap + workflow validation (3 Correctors, bypass SuperCorrector)
-14. **❌ Exercices** : Par TD/matière/filière avec indices & corrections
-15. **❌ Annales** : Mode simulation examen avec minuteur + indices/corrections
-16. **❌ Feedback** : Formulaire de retour utilisateurs (titre, description, type)
+8. **❌ Calendrier** : CRUD événements (Admin/Bureau/CA) + inscriptions membres
+9. **❌ Tâches** : Kanban personnel (To Do / In Progress / Done) + chart progression
+10. **❌ Cours** : Hiérarchie Année → Filière → Matière + éditeur Tiptap + workflow validation (3 Correctors, bypass SuperCorrector)
+11. **❌ Exercices** : Par TD/matière/filière avec indices & corrections
+12. **❌ Annales** : Mode simulation examen avec minuteur + indices/corrections
+13. **❌ Feedback** : Formulaire de retour utilisateurs (titre, description, type)
 
 ### DevX & Qualité (P3)
-17. **❌ Tests** : Aucun test (unitaire guards RBAC, intégration server actions, e2e)
-18. **❌ CI/CD** : Pas de pipeline GitHub Actions (lint/build/test)
-19. **❌ Logging structuré** : Pas de Pino/Winston avec niveaux (info/warn/error)
-20. **❌ Documentation code** : Fonctions complexes non documentées (JSDoc)
+14. **❌ Documentation code** : Fonctions complexes non documentées (JSDoc)
 
 ---
 
@@ -135,7 +134,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 
 **Durée estimée** : 3-4 jours
 
-1. **Middleware protection par rôle (½ jour)**
+1. ✅ **Middleware protection par rôle (½ jour)**
    ```typescript
    // proxy.ts : Ajouter checks RBAC
    if (pathname.startsWith('/admin/')) {
@@ -148,25 +147,34 @@ Web-app pour la gestion et les ressources de l'association ADEM.
    }
    ```
 
-2. **Audit logging helper (½ jour)**
+2. ✅ **Audit logging helper (½ jour)**
    - Créer `lib/audit.ts` avec fonction `logAudit(userId, action, resource, metadata)`
    - Intégrer dans toutes les server actions sensibles
 
-3. **Page /admin/members (1.5 jours)**
-   - Table DataTable shadcn/ui avec pagination/filters/sort
-   - Colonnes : avatar, nom, email, rôles, statut, date inscription, actions
-   - Actions inline :
+3. **Page /members (1.5 jours)**
+   - Séparer les membres en trois tabs : Une pour les membres avec le status 'active', une pour le status 'pending' et un autre tab pour les autres ('banned','suspended')
+   - Pour chaque Membre une Card shadcn/ui responsive avec pagination/filters/sort en haut 
+   - Ce qu'il y aura dans la Card : avatar, nom, email, rôles, statut, date inscription
+   - Actions inline pour le tab 'Membres actifs' (à droite il y aura un bouton avec une icone Ellipsis de lucide react et avec ça un popover qui indiquera toute les actions suivantes) :
+     - Voir le profil
      - Changer rôle (Dialog avec Select multi-rôles)
      - Reset password (envoie email reset)
-     - Ban/Unban user (avec raison + durée optionnelle)
+     - Expulser (avec raison obligatoire + durée optionnelle)
+     - Bannir (avec raison obligatoire)
+     - Supprimer
+   - Actions inline pour le tab 'Membres en attente' :
+     - Accepter le membre
+     - Refuser le membre
+   - Actions inline pour le tab 'Membres bannis/expulsés' :
+     - Deban le membre (uniquement pour les utilisateurs expulsés, les utilisateurs bannis le seront toujours)
    - Server actions : `server/members.ts`
      - `listUsers(filters, pagination)` → pagination Drizzle
      - `setUserRoles(userId, roleIds[])` → avec `logAudit()`
      - `banUser(userId, reason, expiresAt)` → utilise `auth.api.admin.banUser()`
      - `unbanUser(userId)` → utilise `auth.api.admin.unbanUser()`
 
-4. **Page /admin/roles (1 jour)**
-   - Liste rôles (cards colorées style Discord avec priority)
+4. ✅ **Page /roles (1 jour)**
+   - Rôles (cards colorées style Discord avec priority) avec tabs
    - CRUD rôles : Dialog create/edit avec nom + priority + color picker
    - Checkboxes permissions groupées par resource (events, resources, members, etc.)
    - Server actions : `server/roles.ts`
@@ -174,7 +182,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
      - `updateRole(roleId, data, permissionIds[])`
      - `deleteRole(roleId)` → vérifier aucun user n'a ce rôle
 
-5. **Script admin:promote (¼ jour)**
+5. ✅ **Script admin:promote (¼ jour)**
    - Créer `scripts/promote-admin.ts` pour usage futur
    - Ajouter script `"admin:promote": "tsx scripts/promote-admin.ts"` dans package.json
 
@@ -183,7 +191,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 ---
 
 ### Phase 3 : Invitations & Whitelist (Bureau/CA)
-**Objectif** : Permettre l'onboarding massif des membres
+**Objectif** : Permettre l'onboarding massif des membres et le status 'active' et le rôle 'Membre' directement si l'email est dans la white-liste, sinon mettre en 'pending' et attendre la validation.
 
 **Durée estimée** : 2-3 jours
 
@@ -193,7 +201,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
    - Preview avec DataTable (erreurs en rouge, warnings en orange)
    - Colonnes fichier : email, role (optionnel), status (optionnel)
 
-2. **Page /bureau/invitations (1 jour)**
+2. **Page /invitations (1 jour)**
    - Upload zone (drag & drop ou file input)
    - Preview DataTable avec filtres (valides/erreurs)
    - Actions : "Tout importer" (transaction) ou "Importer sélection"
@@ -201,7 +209,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
      - `importBatch(rows[])` → transaction Drizzle + audit logs
      - Auto-assign role "Membre" + status "active" si pas précisé
 
-3. **Page /bureau/add-member (½ jour)**
+3. **Page /add-member (½ jour)**
    - Form : email, nom, rôle (Select), statut (Select)
    - Génère mot de passe temporaire
    - Envoie email avec lien reset password
@@ -213,33 +221,10 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 
 ---
 
-### Phase 4 : Dashboard & Quick Wins
-**Objectif** : Page d'accueil fonctionnelle + retours utilisateurs
-
-**Durée estimée** : 2-3 jours
-
-1. **Dashboard (/)**
-   - Citation du jour (hardcodée ou API gratuite type quotable.io)
-   - 4 KPI cards avec icônes :
-     - Total membres actifs (count users où status = "active")
-     - Événements à venir (count events où date > now)
-     - Ressources publiées (count resources où published = true)
-     - Tâches complétées aujourd'hui (count tasks où status = "done" et updatedAt = today)
-   - Section "Prochains événements" (3 cards avec date + bouton "S'inscrire")
-   - Section "Tâches récentes" (3 dernières tâches)
-   - Quick actions : boutons vers pages principales
-
-2. **Page Feedback (/feedback)**
-   - Form simple : titre (Input), description (Textarea), type (Select : Bug, Suggestion, Autre)
-   - Server action : `server/feedback.ts` → stockage DB table `feedback`
-   - Toast confirmation "Merci pour votre retour !"
-
-**Délivrables** : Dashboard informatif + système de feedback
-
----
-
-### Phase 5 : Ressources (Cours, Exercices, Annales)
+### Phase 4 : Ressources (Cours, Exercices, Annales)
 **Objectif** : MVP éditeur + workflow validation
+
+**A voir avec un pdf**
 
 **Durée estimée** : 5-7 jours
 
@@ -265,6 +250,30 @@ Web-app pour la gestion et les ressources de l'association ADEM.
    - Notifications email (optionnel) aux auteurs
 
 **Délivrables** : Système de cours/exercices avec validation collaborative
+---
+
+### Phase 5 : Dashboard & Quick Wins
+**Objectif** : Page d'accueil fonctionnelle + retours utilisateurs
+
+**Durée estimée** : 2-3 jours
+
+1. **Dashboard (/)**
+   - Citation du jour (hardcodée ou API gratuite type quotable.io)
+   - 4 KPI cards avec icônes :
+     - Total membres actifs (count users où status = "active")
+     - Événements à venir (count events où date > now)
+     - Ressources publiées (count resources où published = true)
+     - Tâches complétées aujourd'hui (count tasks où status = "done" et updatedAt = today)
+   - Section "Prochains événements" (3 cards avec date + bouton "S'inscrire")
+   - Section "Tâches récentes" (3 dernières tâches)
+   - Quick actions : boutons vers pages principales
+
+2. **Page Feedback (/feedback)**
+   - Form simple : titre (Input), description (Textarea), type (Select : Bug, Suggestion, Autre)
+   - Server action : `server/feedback.ts` → stockage DB table `feedback`
+   - Toast confirmation "Merci pour votre retour !"
+
+**Délivrables** : Dashboard informatif + système de feedback
 
 ---
 
@@ -324,13 +333,16 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 │   ├── dto.ts                 # sanitizeUser ✅
 │   ├── email.ts               # Service email (Mock + Resend) ✅
 │   ├── validations/           # Schémas Zod ✅
+│   ├── font.ts                # Toutes les fonts Google ✅
+│   ├── rbac.ts                # Le système de gestion de rôle RBAC ✅
+│   ├── audit.ts               # Pour les logs ✅
 │   └── utils.ts               # Utilitaires (cn) ✅
 │
 ├── server/
 │   └── settings.ts            # deleteAccount server action ✅
 │
 ├── emails/                    # Templates React Email ✅
-├── migrations/                # ❌ VIDE (à créer)
+├── migrations/                # ❌ VIDE (à créer pour faire les migrations incrémentales, pas de migrations complètes)
 ├── proxy.ts                   # Middleware Next.js ✅
 ├── drizzle.config.ts          # Config Drizzle ✅
 └── package.json               # Dépendances ✅
@@ -387,20 +399,9 @@ CREATE DATABASE adem;
 ```bash
 pnpm db:generate   # Générer migrations depuis schema.ts
 pnpm db:migrate    # Appliquer migrations en DB
-pnpm db:seed       # Peupler rôles + permissions + admin
 ```
 
-### 6. ✅ Créer votre premier admin (si pas déjà fait)
-```bash
-# Option 1 : Créer via script (recommandé)
-pnpm admin:promote votre-email@adem.fr
-
-# Option 2 : Manuellement via Drizzle Studio
-pnpm db:studio
-# Puis insérer dans userRoles : userId + roleId du rôle "Admin"
-```
-
-### 7. Lancer le serveur de développement
+### 6. Lancer le serveur de développement
 ```bash
 pnpm dev
 ```
@@ -424,15 +425,8 @@ pnpm lint         # ESLint
 pnpm db:generate              # Générer migrations depuis schema.ts
 pnpm db:migrate               # Appliquer migrations en DB
 pnpm db:push                  # Push schema sans migration (dev rapide)
-pnpm db:seed                  # Seed rôles + permissions (idempotent)
 pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 ```
-
-### Administration
-```bash
-pnpm admin:promote <email>    # Promouvoir un user en Admin
-```
-
 ---
 
 ## 🔐 Sécurité
@@ -448,22 +442,19 @@ pnpm admin:promote <email>    # Promouvoir un user en Admin
 - ✅ Regex password fort (maj + min + chiffre)
 - ✅ Guards RBAC exhaustifs (`hasRole()`, `can()`, `requireRole()`, `requirePermission()`)
 - ✅ CSRF tokens (géré nativement par Better-Auth)
+- Routes `/roles/**` non accessibles aux utilisateurs non autorisés
+- Table créée et fonction `logAudit()`
 
 ### À Implémenter (Priorité P0)
-- ⚠️ **Middleware protection par rôle** : Routes `/admin/**` et `/bureau/**` accessibles à tous les connectés
-- ⚠️ **Audit logging actif** : Table créée mais fonction `logAudit()` non utilisée dans server actions
 - ⚠️ **Rate limiting server actions** : Limiter actions sensibles (ban, delete, etc.) par userId + IP
 - ⚠️ **Guards dans server actions** : Aucune server action n'utilise `requireRole()` ou `requirePermission()`
 
 ### Risques Actuels
-1. **Endpoint leakage** : Routes `/admin/**` et `/bureau/**` non protégées par rôle (seulement par session)
-2. **Pas d'audit trail actif** : Actions sensibles non tracées (impossible de voir qui a banni qui, etc.)
-3. **Rate limiting incomplet** : Pas de protection contre abus sur server actions (spam ban/unban, etc.)
+1. **Pas d'audit trail actif** : Actions sensibles non tracées (impossible de voir qui a banni qui, etc.). Implémenter logAudit() dans TOUTES les actions !
+2. **Rate limiting incomplet** : Pas de protection contre abus sur server actions (spam ban/unban, etc.)
 
 **Mitigation (Phase 2)** :
-1. Ajouter checks RBAC dans `proxy.ts` (middleware)
-2. Créer `lib/audit.ts` et l'utiliser dans toutes les server actions sensibles
-3. Implémenter rate limiting avec `@upstash/ratelimit` sur server actions critiques
+1. Implémenter rate limiting avec `@upstash/ratelimit` sur server actions critiques
 
 ---
 
@@ -537,24 +528,26 @@ pnpm admin:promote <email>    # Promouvoir un user en Admin
 
 ## 📋 Résumé Exécutif
 
-### Ce qui fonctionne maintenant (v0.2.0)
+### Ce qui fonctionne maintenant (v0.3.0)
 ✅ **Authentification complète** : Sign up/in, email verification, reset password, change email
 ✅ **RBAC complet** : 7 rôles ADEM + 30 permissions + guards exhaustifs
 ✅ **DB prête** : Migrations appliquées + seed exécuté + admin créé
 ✅ **Sécurité de base** : Middleware session, rate limiting, CSRF, password hashing
 ✅ **UI professionnelle** : Sidebar RBAC conditionnelle, dark mode, 19 composants shadcn
+✅ **Middleware RBAC** : Routes `/roles/**` protégées par rôle
+✅ **Pages admin** : Gestion rôles (1/2 pages implémentées)
 
 ### Ce qui manque (critique)
-❌ **Middleware RBAC** : Routes `/admin/**` et `/bureau/**` non protégées par rôle
-❌ **Pages admin** : Gestion membres + gestion rôles (0/2 pages implémentées)
-❌ **Server actions** : Aucune action CRUD membres/rôles/invitations
-❌ **Audit logging** : Table créée mais non utilisée
+❌ **Rediriger les personnes au status 'pending'** : Il faut rediriger les personnes au statut 'pending' hors du site car elles n'ont pas encore été acceptées.
+❌ **Pages admin** : Gestion membres (1/2 pages implémentées)
+❌ **Server actions** : Aucune action CRUD membres/invitations
+❌ **Sign-up** : 
 
 ### Prochaine étape : Phase 2 (3-4 jours)
-🎯 Implémenter pages `/admin/members` et `/admin/roles` + protection middleware + audit logging
+🎯 Implémenter pages `/members` et + audit logging
 
 ---
 
 **Dernière mise à jour** : 2025-11-05
-**Version** : 0.2.0 (Auth + RBAC DB complète)
-**Prochaine milestone** : Phase 2 - Pages Admin (P0)
+**Version** : 0.3.0 (Auth + RBAC DB complète)
+**Prochaine milestone** : Phase 2 - Pages Membres et Sign-up à reconfigurer (P0)

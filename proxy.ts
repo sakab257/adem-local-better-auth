@@ -49,30 +49,20 @@ export async function proxy(request: NextRequest) {
     // 🔐 PROTECTION RBAC - Routes par rôle
     // ============================================
 
-    // Protection /admin/** - Réservé aux Admins uniquement
-    if (pathname.startsWith('/admin') && session?.user) {
-        const userIsAdmin = await isAdmin(session.user.id)
-        if (!userIsAdmin) {
-            return NextResponse.redirect(new URL('/', request.url))
-        }
-    }
-
     // Protection /roles/** - Réservé aux Admins et Modérateurs
     if (pathname.startsWith('/roles') && session?.user) {
-        const userIsAdmin = await isAdmin(session.user.id)
         const userIsModerator = await isModerator(session.user.id)
 
-        if (!userIsAdmin && !userIsModerator) {
+        if (!userIsModerator) {
             return NextResponse.redirect(new URL('/', request.url))
         }
     }
 
     // Protection /bureau/** - Réservé aux Admins, Bureau et CA
     if (pathname.startsWith('/bureau') && session?.user) {
-        const userIsAdmin = await isAdmin(session.user.id)
         const userIsBureauOrCA = await isBureauOrCA(session.user.id)
 
-        if (!userIsAdmin && !userIsBureauOrCA) {
+        if (!userIsBureauOrCA) {
             return NextResponse.redirect(new URL('/', request.url))
         }
     }
