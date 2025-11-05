@@ -171,25 +171,21 @@ export function ImportFileDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-3">
           {/* Instructions */}
           {!parseResult && (
             <Card>
-              <CardContent className="pt-6">
+              <CardContent>
                 <h3 className="font-semibold mb-3">Format attendu :</h3>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div>
-                    <strong>CSV :</strong> Une colonne "email" ou un email par
-                    ligne
+                    <strong>.CSV / .XLSX / .XLS :</strong> Une colonne "email" puis tous les mails sous cette colonne
                     <pre className="mt-1 p-2 bg-muted rounded text-xs">
                       email{"\n"}exemple1@email.com{"\n"}exemple2@email.com
                     </pre>
                   </div>
                   <div>
-                    <strong>XLSX/XLS :</strong> Première colonne = emails
-                  </div>
-                  <div>
-                    <strong>TXT :</strong> Un email par ligne
+                    <strong>.TXT :</strong> Un email par ligne
                     <pre className="mt-1 p-2 bg-muted rounded text-xs">
                       exemple1@email.com{"\n"}exemple2@email.com
                     </pre>
@@ -247,8 +243,8 @@ export function ImportFileDialog({
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium">{fileName}</span>
                 <Badge variant="outline" className="gap-1">
-                  <CheckCircle className="h-3 w-3 text-green-600" />
-                  {parseResult.validCount} valide(s)
+                  <CheckCircle className="h-3 w-3 text-validate" />
+                  {parseResult.validCount} valide{parseResult.validCount > 1 ? "s" : ""}
                 </Badge>
                 {parseResult.invalidCount > 0 && (
                   <Badge variant="destructive" className="gap-1">
@@ -257,7 +253,7 @@ export function ImportFileDialog({
                   </Badge>
                 )}
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => setParseResult(null)}
                   className="ml-auto"
@@ -278,7 +274,7 @@ export function ImportFileDialog({
                         key={index}
                         className={`flex items-center justify-between p-2 rounded border ${
                           email.valid
-                            ? "border-green-200 bg-green-50/50"
+                            ? "border"
                             : "border-destructive bg-destructive/5"
                         }`}
                       >
@@ -308,11 +304,11 @@ export function ImportFileDialog({
                             </div>
                           ) : (
                             <>
-                              <p className="text-sm font-medium truncate">
+                              <p className="pl-2 text-sm font-medium truncate">
                                 {email.email}
                               </p>
                               {email.error && (
-                                <p className="text-xs text-destructive">
+                                <p className="pl-2 text-xs text-destructive">
                                   {email.error}
                                 </p>
                               )}
@@ -320,11 +316,6 @@ export function ImportFileDialog({
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {email.valid ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-destructive" />
-                          )}
                           {editingIndex !== index && (
                             <>
                               <Button
@@ -368,7 +359,7 @@ export function ImportFileDialog({
             >
               {loading
                 ? "Import en cours..."
-                : `Valider (${parseResult.validCount} email(s))`}
+                : `Valider (${parseResult.validCount} email${parseResult.validCount > 1 ? "s" : ""})`}
             </Button>
           )}
         </DialogFooter>

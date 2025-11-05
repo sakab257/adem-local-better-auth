@@ -1,0 +1,29 @@
+Lis le fichier CLAUDE.md et README.md
+
+Analyse bien mon projet, j’ai plusieurs problèmes a te donner : 
+
+Je veux que l’UI des membres actifs, en attente et bannis/expulsés soient affiché de la même manière que quand je regarde les membres dans /roles/[id], avec leur avatar, nom, juste en bas de leur nom leur email en text-muted-foreground.  Tout à droite je veux leur rôle (toujours avec le + (nb roles)) et a droite de leur rôle je veux l’ellipsis. Je souhaite une chose c’est que l’utilisateur courant ne puisse pas voir l’icone ellipsis sur lui-même.
+
+- Fais une alert dialog pour la suppression d’un utilisateur. 
+
+- Pour le banissement, revois un peu la logique, car je peux bannir/debannir mais quand je bannis quelqu’un et que je vois son profil dans le tab ‘Bannis’, alors il y a toujours écrit Bannissement permanent, alors que je ne l’ai pas bannis permanent.
+
+- Revois le permissions, car j’ai voulu bannir quelqu’un en tant que modérateur, et apparement je n’ai pas les permissions (alors que si en tant que modérateur j’ai toutes les permissions).
+
+ GET /members 200 in 120ms (compile: 7ms, proxy.ts: 13ms, render: 100ms)
+
+Erreur lors du bannissement: [Error [APIError]: You are not allowed to ban users] {
+
+  status: 'FORBIDDEN',
+
+  body: [Object],
+
+  headers: {},
+
+  statusCode: 403
+
+}
+
+- Revois le systeme de rôle, de permissions et de hierarchie et regarde s’il y a des erreurs, des incohérences, des redondances ,etc…
+
+- Dialog pour envoi de reinitalisation de mot de passe

@@ -41,30 +41,28 @@ export default async function PendingPage() {
 
         <CardContent className="space-y-6">
           <div className="space-y-4 text-sm text-muted-foreground">
-            <p>
-              Bonjour <span className="font-semibold text-foreground">{session.user.name}</span>,
+            <p className="text-center">
+              Bonjour <span className="font-semibold text-foreground capitalize">{session.user.name}</span>
             </p>
 
             <p>
               Votre compte est actuellement <span className="font-semibold text-warning">en attente de validation</span> par
-              un administrateur de l'ADEM.
+              un responsable de l'ADEM.
             </p>
 
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <p className="font-medium text-foreground">Prochaines étapes :</p>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Un administrateur examinera votre demande</li>
-                <li>Vous recevrez un email dès que votre compte sera activé</li>
+                <li>Un responsable examinera votre demande sous 24 à 48 heures</li>
                 <li>Vous pourrez alors accéder à toutes les fonctionnalités</li>
               </ul>
             </div>
 
-            <p className="text-xs">
-              Ce processus prend généralement <span className="font-semibold">24 à 48 heures</span>.
+            <p className="text-xs text-center">
               Si vous avez des questions, contactez-nous à{" "}
-              <a href="mailto:contact@adem.fr" className="text-primary hover:underline">
-                contact@adem.fr
-              </a>
+              <span className="font-bold hover:underline">
+                respo.adem@gmail.fr
+              </span>
             </p>
           </div>
 

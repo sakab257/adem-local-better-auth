@@ -14,6 +14,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   MoreVertical,
   Shield,
   KeyRound,
@@ -25,6 +36,7 @@ import {
   User as UserIcon,
   Search,
   UserCircle,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -54,6 +66,7 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
   const [isViewProfileOpen, setIsViewProfileOpen] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filtrer les membres : exclure l'admin et filtrer selon la recherche
   const filteredMembers = members
@@ -304,12 +317,39 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
                                 <Ban className="h-4 w-4 mr-2" />
                                 Bannir
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(member)}
+                              <DropdownMenuItem asChild
+                                // onClick={() => handleDelete(member)}
                                 className="text-destructive"
                               >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer
+                                {/* Bouton supprimer */}
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <div className="flex text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Supprimer le rôle
+                                    </div>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          Cette action est irréversible. Le rôle sera définitivement supprimé.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        // onClick={handleDelete(member)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Oui, supprimer
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                                {/* <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer */}
                               </DropdownMenuItem>
                             </>
                           )}
