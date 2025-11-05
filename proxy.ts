@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from './lib/auth'
+import { isAdmin, isModerator, isBureauOrCA } from './lib/rbac'
 
 // Définir les routes publiques et d'authentification
 const authRoutes = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password', '/auth/reset-password']
@@ -42,6 +43,38 @@ export async function proxy(request: NextRequest) {
     // Rediriger les utilisateurs connectés (avec email vérifié) hors des pages d'auth
     if (isAuthRoute && session?.user && session.user.emailVerified) {
         return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    // ============================================
+    // 🔐 PROTECTION RBAC - Routes par rôle
+    // ============================================
+
+    // Protection /admin/** - Réservé aux Admins uniquement
+    if (pathname.startsWith('/admin') && session?.user) {
+        const userIsAdmin = await isAdmin(session.user.id)
+        if (!userIsAdmin) {
+            return NextResponse.redirect(new URL('/', request.url))
+        }
+    }
+
+    // Protection /roles/** - Réservé aux Admins et Modérateurs
+    if (pathname.startsWith('/roles') && session?.user) {
+        const userIsAdmin = await isAdmin(session.user.id)
+        const userIsModerator = await isModerator(session.user.id)
+
+        if (!userIsAdmin && !userIsModerator) {
+            return NextResponse.redirect(new URL('/', request.url))
+        }
+    }
+
+    // Protection /bureau/** - Réservé aux Admins, Bureau et CA
+    if (pathname.startsWith('/bureau') && session?.user) {
+        const userIsAdmin = await isAdmin(session.user.id)
+        const userIsBureauOrCA = await isBureauOrCA(session.user.id)
+
+        if (!userIsAdmin && !userIsBureauOrCA) {
+            return NextResponse.redirect(new URL('/', request.url))
+        }
     }
 
     return NextResponse.next()

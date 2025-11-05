@@ -5,8 +5,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/themes/theme-provider"
 
 export const metadata: Metadata = {
-  title: "Sanity Workout",
-  description: "Entraînez vous au maximum avec Sanity Workout",
+  title: "ADEM",
+  description: "Le site de l'ADEM, fait par nous et pour nous !",
 };
 
 export default function RootLayout({
