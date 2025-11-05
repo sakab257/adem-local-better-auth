@@ -221,7 +221,7 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
           return (
             <Card key={member.id} className="hover:shadow-md transition-shadow">
               <CardContent className="">
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   {/* Avatar */}
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={member.image || undefined} />
@@ -230,7 +230,7 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
 
                   {/* Infos */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm truncate">
                           {member.name}
@@ -240,7 +240,28 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
                         </p>
                       </div>
 
-                      {/* Menu Actions - Ne pas afficher pour l'utilisateur courant */}
+                      {/* Rôles */}
+                      <div className="flex flex-wrap gap-1">
+                        {primaryRole && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs font-semibold px-4"
+                            style={{
+                              backgroundColor: primaryRole.color
+                                ? `${primaryRole.color}`
+                                : undefined,
+                              borderColor: primaryRole.color || undefined,
+                            }}
+                          >
+                            {primaryRole.name}
+                          </Badge>
+                        )}
+                        {member.roles.length > 1 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{member.roles.length - 1}
+                          </Badge>
+                        )}
+                      </div>
                       {!isCurrentUser && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -335,31 +356,9 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
                       )}
                     </div>
 
-                    {/* Rôles */}
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {primaryRole && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs"
-                          style={{
-                            backgroundColor: primaryRole.color
-                              ? `${primaryRole.color}20`
-                              : undefined,
-                            borderColor: primaryRole.color || undefined,
-                          }}
-                        >
-                          {primaryRole.name}
-                        </Badge>
-                      )}
-                      {member.roles.length > 1 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{member.roles.length - 1}
-                        </Badge>
-                      )}
-                    </div>
 
                     {/* Statut / Info supplémentaire */}
-                    <div className="mt-2 text-xs text-muted-foreground">
+                    {/* <div className="mt-2 text-xs text-muted-foreground">
                       {status === "banned" && member.banReason && (
                         <p className="text-destructive">
                           Raison: {member.banReason}
@@ -376,7 +375,7 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
                           {member.emailVerified ? "✓ Email vérifié" : "⚠ Email non vérifié"}
                         </p>
                       )}
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </CardContent>
