@@ -17,6 +17,34 @@ import {
 } from "@/lib/types";
 
 // ============================================
+// RÉCUPÉRER TOUS LES RÔLES DISPONIBLES
+// ============================================
+
+export async function getAllRoles(): Promise<
+  Array<{ id: string; name: string; color: string | null; priority: number }>
+> {
+  try {
+    const session = await verifySession();
+    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+
+    const allRoles = await db
+      .select({
+        id: roles.id,
+        name: roles.name,
+        color: roles.color,
+        priority: roles.priority,
+      })
+      .from(roles)
+      .orderBy(desc(roles.priority));
+
+    return allRoles;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des rôles:", error);
+    throw new Error("Impossible de récupérer les rôles");
+  }
+}
+
+// ============================================
 // VÉRIFIER SI L'UTILISATEUR COURANT PEUT GÉRER UN AUTRE USER
 // ============================================
 
