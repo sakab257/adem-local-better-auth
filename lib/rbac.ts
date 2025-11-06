@@ -2,6 +2,8 @@ import { cache } from "react";
 import { db } from "@/db/drizzle";
 import { user, roles, permissions, userRoles, rolePermissions } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 /**
  * Policy Layer - RBAC (Role-Based Access Control)
@@ -268,9 +270,9 @@ export async function requirePermission(
   const hasPermission = await can(userId, permissionName);
 
   if (!hasPermission) {
-    throw new Error(
-      `Accès refusé : permission "${permissionName}" requise`
-    );
+    console.error(`Accès refusé : permission "${permissionName}" requise`);
+    revalidatePath('/')
+    redirect('/')
   }
 }
 
@@ -284,9 +286,9 @@ export async function requireAnyPermission(
   const hasPermission = await canAny(userId, permissionNames);
 
   if (!hasPermission) {
-    throw new Error(
-      `Accès refusé : une des permissions suivantes est requise : ${permissionNames.join(", ")}`
-    );
+    console.error(`Accès refusé : les permissions "${permissionNames}" sont requises`);
+    revalidatePath('/')
+    redirect('/')
   }
 }
 
@@ -300,9 +302,9 @@ export async function requireAllPermissions(
   const hasAllPermissions = await canAll(userId, permissionNames);
 
   if (!hasAllPermissions) {
-    throw new Error(
-      `Accès refusé : toutes les permissions suivantes sont requises : ${permissionNames.join(", ")}`
-    );
+    console.error(`Accès refusé : les permissions "${permissionNames}" sont requises`);
+    revalidatePath('/')
+    redirect('/')
   }
 }
 

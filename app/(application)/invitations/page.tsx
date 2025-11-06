@@ -1,9 +1,7 @@
 import { verifySession } from "@/lib/dal";
-import { requireAnyRole } from "@/lib/rbac";
+import { requireAllPermissions} from "@/lib/rbac";
 import { listWhitelistEmails } from "@/server/invitations";
 import { WhitelistList } from "@/components/invitations/whitelist-list";
-import { Button } from "@/components/ui/button";
-import { Mail, Upload } from "lucide-react";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -12,10 +10,14 @@ export const metadata = {
   description: "Gérer les invitations et la whitelist",
 };
 
+// ============================================
+// FICHIER REFACTORISE AVEC requirePermission / requireAllPermissions
+// ============================================
+
 export default async function InvitationsPage() {
   // Vérifier les permissions
   const session = await verifySession();
-  await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
+  await requireAllPermissions(session.user.id, ["members:invite","members:read"])
 
   // Récupérer la whitelist
   const whitelistEmails = await listWhitelistEmails();

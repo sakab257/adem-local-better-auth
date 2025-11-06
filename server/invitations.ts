@@ -1,7 +1,7 @@
 "use server";
 
 import { verifySession } from "@/lib/dal";
-import { requireAnyRole } from "@/lib/rbac";
+import { can, requireAllPermissions } from "@/lib/rbac";
 import { db } from "@/db/drizzle";
 import { whitelist } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -12,13 +12,17 @@ import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 
 // ============================================
+// FICHIER REFACTORISE AVEC requirePermission / requireAllPermissions
+// ============================================
+
+// ============================================
 // LISTE DES EMAILS WHITELIST
 // ============================================
 
 export async function listWhitelistEmails(): Promise<WhitelistEntry[]> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
+    await requireAllPermissions(session.user.id, ["members:invite","members:read"]);
 
     const emails = await db
       .select()
@@ -41,7 +45,7 @@ export async function addEmailToWhitelist(
 ): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
+    await requireAllPermissions(session.user.id, ["members:invite","members:read","members:create"]);
 
     // Normaliser l'email
     const normalizedEmail = email.trim().toLowerCase();
@@ -95,7 +99,7 @@ export async function addEmailsToWhitelist(
 ): Promise<ActionResponse & { addedCount?: number; skippedCount?: number }> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
+    await requireAllPermissions(session.user.id, ["members:invite","members:read","members:create"])
 
     // Normaliser tous les emails
     const normalizedEmails = emails.map((e) => e.trim().toLowerCase());
@@ -167,7 +171,7 @@ export async function removeEmailFromWhitelist(
 ): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
+    await requireAllPermissions(session.user.id, ["members:invite","members:read","members:delete"])
 
     // Récupérer l'email pour le log
     const entry = await db.query.whitelist.findFirst({
@@ -211,7 +215,7 @@ export async function removeEmailFromWhitelist(
 export async function clearWhitelist(): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAllPermissions(session.user.id, ["members:invite","members:read","members:delete"])
 
     // Compter les emails avant suppression
     const allEmails = await db.select().from(whitelist);

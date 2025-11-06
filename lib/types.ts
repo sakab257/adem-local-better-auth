@@ -85,6 +85,37 @@ export interface Permission {
   createdAt: Date;
 }
 
+export interface RoleWithPermissions extends Role {
+  permissions: Permission[];
+}
+
+export interface RoleWithMembers extends Role {
+  members: RoleMember[];
+  memberCount: number;
+}
+
+export interface RoleMember {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userImage: string | null;
+  assignedAt: Date;
+}
+export interface CreateRoleInput {
+  name: string;
+  description?: string;
+  color?: string;
+  priority?: number;
+  permissionIds?: string[];
+}
+
+export interface UpdateRoleInput {
+  name?: string;
+  description?: string;
+  color?: string;
+  priority?: number;
+}
+
 // ============================================
 // TYPES WHITELIST
 // ============================================
@@ -95,3 +126,9 @@ export interface WhitelistEntry {
   addedBy: string | null;
   createdAt: Date;
 }
+
+
+
+// ============================================
+// TYPES ROLES
+// ============================================

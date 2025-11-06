@@ -303,7 +303,7 @@ export function MembersGrid({ members, status, currentUserId, canChangeRoles = f
                                 onClick={() => handleResetPassword(member)}
                               >
                                 <KeyRound className="h-4 w-4 mr-2" />
-                                Reinitialiser mot de passe
+                                Reinitialiser MDP
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem

@@ -17,6 +17,10 @@ import { toast } from "sonner";
 import { addEmailsToWhitelist } from "@/server/invitations";
 import { Badge } from "@/components/ui/badge";
 
+// ============================================
+// FICHIER REFACTORISE
+// ============================================
+
 interface AddEmailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

@@ -134,23 +134,24 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 ## ❌ Ce qui Manque
 
 ### Critique (P0 - Immédiat)
-1. **❌ Script admin:promote** : Créer `scripts/promote-admin.ts` pour promouvoir un utilisateur en Admin
-2. **❌ Rate limiting server actions** : Implémenter `@upstash/ratelimit` sur actions sensibles (ban, delete, setRoles)
+1. **(En cours) Utiliser les fonctions requirePermission(user.id,permission) et requireAllPermissions(id,permissions[]) pour permettre les actions** : Refactoriser toutes les pages et les composants pour s'assurer de la sécurité et de la gestion des rôles et permissions et voir si TOUTES les actions sont logges dans audit_log !
+2. **❌ Ajout membre unique (/add)** : Création + envoi OTP + force reset on first login
+3. **?? Rate limiting server actions** : Implémenter `@upstash/ratelimit` sur actions sensibles (ban, delete, setRoles)
+
 
 ### Important (P1 - Pages Métier)
-3. **❌ Ajout membre unique (/bureau/add-member)** : Création + envoi OTP + force reset on first login
-4. **❌ Dashboard (/)** : Citation du jour, 4 KPIs, événements à venir, tâches récentes, quick actions
+4. **❌ Cours** : Hiérarchie Année → Filière → Matière + éditeur Tiptap + workflow validation (3 Correctors, bypass SuperCorrector)
+5. **❌ Exercices** : Par TD/matière/filière avec indices & corrections
+6. **❌ Annales** : Mode simulation examen avec minuteur + indices/corrections
 
 ### Fonctionnalités Avancées (P2 - Ressources)
-5. **❌ Calendrier** : CRUD événements (Admin/Bureau/CA) + inscriptions membres
-6. **❌ Tâches** : Kanban personnel (To Do / In Progress / Done) + chart progression
-7. **❌ Cours** : Hiérarchie Année → Filière → Matière + éditeur Tiptap + workflow validation (3 Correctors, bypass SuperCorrector)
-8. **❌ Exercices** : Par TD/matière/filière avec indices & corrections
-9. **❌ Annales** : Mode simulation examen avec minuteur + indices/corrections
+7. **❌ Dashboard (/)** : Citation du jour, 4 KPIs, événements à venir, tâches récentes, quick actions
+8. **❌ Calendrier** : CRUD événements (Admin/Bureau/CA) + inscriptions membres
+9. **❌ Tâches** : Kanban personnel (To Do / In Progress / Done) + chart progression
 10. **❌ Feedback** : Formulaire de retour utilisateurs (titre, description, type)
 
 ### DevX & Qualité (P3)
-11. **❌ Tests unitaires** : RBAC guards, parsers CSV/XLSX/TXT
+11. **❌ Tests** : RBAC guards, parsers CSV/XLSX/TXT
 12. **❌ Documentation JSDoc** : Fonctions complexes
 13. **❌ Avatar upload** : Implémentation complète (field exists dans DB)
 14. **❌ Notifications email** : Système de notifications asynchrones
@@ -172,7 +173,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 
 ---
 
-### Phase 2 : Pages Admin & Protection (Priorité P0 - EN COURS)
+### ✅ Phase 2 : Pages Admin & Protection (Priorité P0 - EN COURS)
 **Objectif** : Exploiter l'infrastructure RBAC avec les pages de gestion
 
 **Durée estimée** : 3-4 jours
@@ -194,7 +195,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
    - Créer `lib/audit.ts` avec fonction `logAudit(userId, action, resource, metadata)`
    - Intégrer dans toutes les server actions sensibles
 
-3. **Page /members (1.5 jours)**
+3. ✅ **Page /members (1.5 jours)**
    - Séparer les membres en trois tabs : Une pour les membres avec le status 'active', une pour le status 'pending' et un autre tab pour les autres ('banned','suspended')
    - Pour chaque Membre une Card shadcn/ui responsive avec pagination/filters/sort en haut 
    - Ce qu'il y aura dans la Card : avatar, nom, email, rôles, statut, date inscription
@@ -238,13 +239,13 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 
 **Durée estimée** : 2-3 jours
 
-1. **Parser CSV/XLSX/TXT (1 jour)**
+1. ✅ **Parser CSV/XLSX/TXT (1 jour)**
    - Créer `lib/parsers.ts` avec helpers pour CSV (papaparse), XLSX (xlsx), TXT
    - Upload → parsing → validation email + rôle + statut
    - Preview avec DataTable (erreurs en rouge, warnings en orange)
    - Colonnes fichier : email, role (optionnel), status (optionnel)
 
-2. **Page /invitations (1 jour)**
+2. ✅ **Page /invitations (1 jour)**
    - Upload zone (drag & drop ou file input)
    - Preview DataTable avec filtres (valides/erreurs)
    - Actions : "Tout importer" (transaction) ou "Importer sélection"
@@ -252,7 +253,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
      - `importBatch(rows[])` → transaction Drizzle + audit logs
      - Auto-assign role "Membre" + status "active" si pas précisé
 
-3. **Page /add-member (½ jour)**
+3. **Page /add (½ jour)**
    - Form : email, nom, rôle (Select), statut (Select)
    - Génère mot de passe temporaire
    - Envoie email avec lien reset password
@@ -293,6 +294,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
    - Notifications email (optionnel) aux auteurs
 
 **Délivrables** : Système de cours/exercices avec validation collaborative
+
 ---
 
 ### Phase 5 : Dashboard & Quick Wins
@@ -385,7 +387,6 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 │   └── settings.ts            # deleteAccount server action ✅
 │
 ├── emails/                    # Templates React Email ✅
-├── migrations/                # ❌ VIDE (à créer pour faire les migrations incrémentales, pas de migrations complètes)
 ├── proxy.ts                   # Middleware Next.js ✅
 ├── drizzle.config.ts          # Config Drizzle ✅
 └── package.json               # Dépendances ✅
@@ -489,10 +490,7 @@ pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 - ✅ Table `auditLogs` créée et fonction `logAudit()` implémentée
 - ✅ **Better-Auth Admin plugin configuré** : `impersonatedBy()` autorise Admin et Modérateur pour les actions ban/unban
 - ✅ **Guards dans server actions** : Toutes les actions membres utilisent `requireAnyRole()`
-- ✅ **Audit logging actif** : Toutes les actions sensibles (ban, unban, delete, setRoles, accept, reject) loggées avec métadonnées
-
-### À Implémenter (Priorité P1)
-- ⚠️ **Rate limiting server actions** : Limiter actions sensibles (ban, delete, etc.) par userId + IP avec `@upstash/ratelimit`
+- ✅ **Audit logging actif** : Toutes les actions sensibles (ban, unban, delete, setRoles, accept, reject) loggées avec métadonnées)
 
 ---
 
@@ -551,14 +549,14 @@ pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 5. **SuperCorrecteur** : Validation ressources (bypass workflow 3 validations)
 6. **Correcteur** : Validation ressources (1 validation parmi 3 requises)
 7. **Membre** : Utilisateur standard avec accès ressources
-8. **En attente** : Nouveau inscrit non validé
 
 ### Permissions Granulaires (Exemples)
-- `events:create`, `events:update`, `events:delete`
-- `resources:create`, `resources:approve`, `resources:publish`
-- `members:invite`, `members:update`, `members:ban`
-- `roles:create`, `roles:update`, `roles:delete`
-- `logs:view`
+- `events:create`, `events:update`, `events:delete`, `events:read`
+- `resources:create`, `resources:approve`, `resources:publish` ...
+- `members:invite`, `members:update`, `members:ban` ...
+- `roles:create`, `roles:update`, `roles:delete` ...
+- `logs:view` ...
+(Voir la table 'permission' pour ça)
 
 ---
 
@@ -604,9 +602,8 @@ pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 - **Guards RBAC** : 16 fonctions (lib/rbac.ts - 430+ lignes)
 
 ### Ce qui manque (prioritaire)
-❌ **P0** : Script admin:promote, Rate limiting server actions
-❌ **P1** : Ajout membre unique, Dashboard avec KPIs
-❌ **P2** : Calendrier, Tâches, Cours/Exercices/Annales (éditeur Tiptap + workflow validation)
+❌ **P0** : Refactorisation et Validation du code, Ajout membre unique dans /add avec toutes les fonctionnalités
+❌ **P1** : Cours/Exercices/Annales (éditeur Tiptap + workflow validation)
 
 ### Prochaine étape : Dashboard + Quick Wins (1-2 jours)
 🎯 Créer dashboard avec citation + KPIs + script admin:promote
@@ -614,5 +611,5 @@ pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 ---
 
 **Dernière mise à jour** : 2025-11-06
-**Version** : 0.6.0 (Auth + RBAC + Membres + Rôles + Invitations + **Hiérarchie complète**)
-**Prochaine milestone** : Dashboard + Ajout membre unique (P1)
+**Version** : 0.6.1 (Auth + RBAC + Membres + Rôles + Invitations + **Hiérarchie complète** + Refactorisation et Validation (En cours))
+**Prochaine milestone** : Refactorisation et Validation du code, Ajout membre unique dans /add avec toutes les fonctionnalités + Cours/Exercices/Annales (éditeur Tiptap + workflow validation)

@@ -22,9 +22,13 @@ import {
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-import { parseFile, ParseResult, ParsedEmail } from "@/lib/parsers";
+import { parseFile, ParseResult } from "@/lib/parsers";
 import { addEmailsToWhitelist } from "@/server/invitations";
 import { Input } from "@/components/ui/input";
+
+// ============================================
+// FICHIER REFACTORISE
+// ============================================
 
 interface ImportFileDialogProps {
   open: boolean;
@@ -199,7 +203,7 @@ export function ImportFileDialog({
           {!parseResult && (
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
                 isDragActive
                   ? "border-primary bg-primary/5"
                   : "border-muted-foreground/25 hover:border-primary/50"
@@ -207,7 +211,7 @@ export function ImportFileDialog({
             >
               <input {...getInputProps()} />
               <Upload
-                className={`h-12 w-12 mx-auto mb-4 ${
+                className={`h-6 w-6 mx-auto mb-4 ${
                   isDragActive ? "text-primary" : "text-muted-foreground"
                 }`}
               />

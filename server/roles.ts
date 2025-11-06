@@ -3,11 +3,16 @@
 import { db } from "@/db/drizzle";
 import { roles, permissions, rolePermissions, userRoles, user } from "@/db/schema";
 import { verifySession } from "@/lib/dal";
-import { requirePermission } from "@/lib/rbac";
+import { requireAllPermissions, requirePermission } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
-import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
+import { Role, Permission, RoleWithPermissions, RoleWithMembers, RoleMember, CreateRoleInput, UpdateRoleInput } from "@/lib/types";
+
+// ============================================
+// FICHIER REFACTORISE AVEC requirePermission / requireAllPermissions
+// ============================================
 
 /**
  * Server Actions - Gestion des Rôles
@@ -16,56 +21,19 @@ import { revalidatePath } from "next/cache";
  * - roles:create
  * - roles:update
  * - roles:delete
+ * - roles:read
  */
-
-// ============================================
-// TYPES
-// ============================================
-
-export interface Role {
-  id: string;
-  name: string;
-  description: string | null;
-  color: string | null;
-  priority: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface RoleWithPermissions extends Role {
-  permissions: Permission[];
-}
-
-export interface RoleWithMembers extends Role {
-  members: RoleMember[];
-  memberCount: number;
-}
-
-export interface Permission {
-  id: string;
-  name: string;
-  description: string | null;
-  resource: string;
-  action: string;
-}
-
-export interface RoleMember {
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userImage: string | null;
-  assignedAt: Date;
-}
 
 // ============================================
 // LISTE & RÉCUPÉRATION
 // ============================================
 
 /**
- * Liste tous les rôles (triés par priority desc)
+ * Liste tous les rôles (triés par priority desc) REFACTORISE AVEC can(id,permission)
  */
 export async function listRoles(): Promise<Role[]> {
   const session = await verifySession();
+  await requirePermission(session.user.id, "roles:read");
 
   const allRoles = await db
     .select()
@@ -76,10 +44,11 @@ export async function listRoles(): Promise<Role[]> {
 }
 
 /**
- * Récupère un rôle par ID avec ses permissions
+ * Récupère un rôle par ID avec ses permissions REFACTORISE AVEC can(id,permission)
  */
 export async function getRoleById(roleId: string): Promise<RoleWithPermissions | null> {
   const session = await verifySession();
+  await requirePermission(session.user.id, "roles:read");
 
   const role = await db.query.roles.findFirst({
     where: eq(roles.id, roleId),
@@ -95,6 +64,7 @@ export async function getRoleById(roleId: string): Promise<RoleWithPermissions |
       description: permissions.description,
       resource: permissions.resource,
       action: permissions.action,
+      createdAt: permissions.createdAt,
     })
     .from(rolePermissions)
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
@@ -107,10 +77,12 @@ export async function getRoleById(roleId: string): Promise<RoleWithPermissions |
 }
 
 /**
- * Récupère tous les membres d'un rôle
+ * Récupère tous les membres d'un rôle REFACTORISE AVEC can(id,permission)
  */
 export async function getRoleMembers(roleId: string): Promise<RoleMember[]> {
   const session = await verifySession();
+  await requirePermission(session.user.id, "roles:read");
+
 
   const members = await db
     .select({
@@ -129,10 +101,11 @@ export async function getRoleMembers(roleId: string): Promise<RoleMember[]> {
 }
 
 /**
- * Récupère toutes les permissions disponibles (groupées par resource)
+ * Récupère toutes les permissions disponibles (groupées par resource) REFACTORISE AVEC can(id,permission)
  */
 export async function getAllPermissions(): Promise<Permission[]> {
   const session = await verifySession();
+  await requirePermission(session.user.id, "roles:read");
 
   const allPermissions = await db
     .select()
@@ -146,21 +119,13 @@ export async function getAllPermissions(): Promise<Permission[]> {
 // CRÉATION
 // ============================================
 
-export interface CreateRoleInput {
-  name: string;
-  description?: string;
-  color?: string;
-  priority?: number;
-  permissionIds?: string[];
-}
-
 /**
  * Crée un nouveau rôle
  */
 export async function createRole(input: CreateRoleInput): Promise<{ success: boolean; roleId?: string; error?: string }> {
   try {
     const session = await verifySession();
-    await requirePermission(session.user.id, "roles:create");
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update"]);
 
     // Vérifier que le nom n'existe pas déjà
     const existingRole = await db.query.roles.findFirst({
@@ -213,13 +178,6 @@ export async function createRole(input: CreateRoleInput): Promise<{ success: boo
 // MISE À JOUR
 // ============================================
 
-export interface UpdateRoleInput {
-  name?: string;
-  description?: string;
-  color?: string;
-  priority?: number;
-}
-
 /**
  * Met à jour les informations d'un rôle (nom, description, couleur, priority)
  */
@@ -229,7 +187,7 @@ export async function updateRole(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySession();
-    await requirePermission(session.user.id, "roles:update");
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update"]);
 
     // Vérifier que le rôle existe
     const existingRole = await db.query.roles.findFirst({
@@ -287,7 +245,7 @@ export async function updateRolePermissions(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySession();
-    await requirePermission(session.user.id, "roles:update");
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update"]);
 
     // Supprimer toutes les permissions actuelles
     await db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
@@ -328,6 +286,9 @@ export async function updateRolePermissions(
  * Compte le nombre d'utilisateurs ayant un rôle
  */
 export async function countRoleMembers(roleId: string): Promise<number> {
+  const session = await verifySession();
+  await requireAllPermissions(session.user.id, ["roles:read","members:read"])
+
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(userRoles)
@@ -342,7 +303,7 @@ export async function countRoleMembers(roleId: string): Promise<number> {
 export async function deleteRole(roleId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySession();
-    await requirePermission(session.user.id, "roles:delete");
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update"]);
 
     // Vérifier que le rôle existe
     const role = await db.query.roles.findFirst({
@@ -425,7 +386,7 @@ export async function removeUserFromRole(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySession();
-    await requirePermission(session.user.id, "roles:update");
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update", "members:read"]);
 
     const assignment = await db.query.userRoles.findFirst({
       where: and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)),

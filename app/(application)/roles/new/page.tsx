@@ -1,5 +1,5 @@
 import { verifySession } from "@/lib/dal";
-import { isAdmin, isModerator } from "@/lib/rbac";
+import { can, isAdmin, isModerator } from "@/lib/rbac";
 import { getAllPermissions } from "@/server/roles";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -10,11 +10,10 @@ import { CreateRoleForm } from "@/components/roles/create-role-form";
 export default async function NewRolePage() {
   // Vérifier la session et les permissions
   const session = await verifySession();
-  const userIsAdmin = await isAdmin(session.user.id);
-  const userIsModerator = await isModerator(session.user.id);
-
+  const canCreateRole = await can(session.user.id, "roles:create");
+  
   // Double vérification (middleware + page level)
-  if (!userIsAdmin && !userIsModerator) {
+  if (!canCreateRole) {
     redirect("/");
   }
 

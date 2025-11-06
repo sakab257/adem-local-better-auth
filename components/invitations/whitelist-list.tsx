@@ -23,6 +23,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// ============================================
+// FICHIER REFACTORISE AVEC requirePermission / requireAllPermissions
+// ============================================
+
 interface WhitelistListProps {
   emails: WhitelistEntry[];
 }
@@ -143,7 +147,7 @@ export function WhitelistList({ emails }: WhitelistListProps) {
           {/* Pagination info */}
           {filteredEmails.length > 0 && (
             <div className="mt-4 text-sm text-muted-foreground text-center">
-              Affichage de {filteredEmails.length} email(s)
+              Affichage de {filteredEmails.length} email{emails.length > 1 ? "s" : ""}
               {searchQuery && ` sur ${emails.length} au total`}
             </div>
           )}
