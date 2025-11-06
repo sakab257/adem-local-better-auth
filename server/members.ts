@@ -1,7 +1,7 @@
 "use server";
 
 import { verifySession } from "@/lib/dal";
-import { requireAnyRole, getUserRoles } from "@/lib/rbac";
+import { requireAnyRole, getUserRoles, requireCanManageUser } from "@/lib/rbac";
 import { db } from "@/db/drizzle";
 import { user, userRoles, roles } from "@/db/schema";
 import { eq, and, or, like, desc, asc, count } from "drizzle-orm";
@@ -15,6 +15,24 @@ import {
   ActionResponse,
   UserStatus,
 } from "@/lib/types";
+
+// ============================================
+// VÉRIFIER SI L'UTILISATEUR COURANT PEUT GÉRER UN AUTRE USER
+// ============================================
+
+export async function canManageUserAction(
+  targetUserId: string
+): Promise<{ canManage: boolean }> {
+  try {
+    const session = await verifySession();
+    const { canManageUser } = await import("@/lib/rbac");
+    const result = await canManageUser(session.user.id, targetUserId);
+    return { canManage: result };
+  } catch (error) {
+    console.error("Erreur lors de la vérification hiérarchie:", error);
+    return { canManage: false };
+  }
+}
 
 // ============================================
 // LISTE DES UTILISATEURS (avec filtres & pagination)
@@ -189,6 +207,9 @@ export async function setUserRoles(
       return { success: false, error: "Utilisateur introuvable" };
     }
 
+    // Vérifier la hiérarchie (priorité)
+    await requireCanManageUser(session.user.id, userId);
+
     // Récupérer les anciens rôles pour le log
     const oldRoles = await db
       .select({ name: roles.name })
@@ -250,38 +271,37 @@ export async function setUserRoles(
 
 export async function banUser(
   userId: string,
-  reason: string,
-  expiresInDays?: number | null
+  reason: string
 ): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
 
-    // Calculer banExpiresIn en millisecondes si fourni
-    const banExpiresIn = expiresInDays
-      ? expiresInDays * 24 * 60 * 60 * 1000
-      : undefined;
-
-    // Utiliser l'API Admin de Better-Auth
-    const headersList = await headers();
-    await auth.api.banUser({
-      headers: headersList,
-      body: {
-        userId,
-        banReason: reason,
-        banExpiresIn,
-      },
-    });
-
-    // Mettre à jour le statut dans la DB
-    await db.update(user).set({ status: "banned" }).where(eq(user.id, userId));
-
-    // Récupérer les infos de l'utilisateur pour le log
+    // Vérifier que l'utilisateur cible existe
     const targetUser = await db.query.user.findFirst({
       where: eq(user.id, userId),
     });
 
+    if (!targetUser) {
+      return { success: false, error: "Utilisateur introuvable" };
+    }
+
+    // Vérifier la hiérarchie (priorité)
+    await requireCanManageUser(session.user.id, userId);
+
+    // Bannir l'utilisateur (permanent uniquement)
+    await db
+      .update(user)
+      .set({
+        status: "banned",
+        banned: true,
+        banReason: reason,
+        banExpiresAt: null, // Permanent
+      })
+      .where(eq(user.id, userId));
+
     // Audit log
+    const headersList = await headers();
     const auditContext = getAuditContext(headersList);
     await logAudit({
       userId: session.user.id,
@@ -290,8 +310,9 @@ export async function banUser(
       resourceId: userId,
       metadata: {
         reason,
-        expiresInDays,
-        targetUserEmail: targetUser?.email,
+        type: "permanent",
+        targetUserEmail: targetUser.email,
+        targetUserName: targetUser.name,
       },
       ...auditContext,
     });
@@ -310,31 +331,33 @@ export async function banUser(
 export async function unbanUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
 
-    // Utiliser l'API Admin de Better-Auth
-    const headersList = await headers();
-    await auth.api.unbanUser({
-      headers: headersList,
-      body: { userId },
+    // Vérifier que l'utilisateur cible existe
+    const targetUser = await db.query.user.findFirst({
+      where: eq(user.id, userId),
     });
 
-    // Mettre à jour le statut dans la DB (repasser à active)
+    if (!targetUser) {
+      return { success: false, error: "Utilisateur introuvable" };
+    }
+
+    // Vérifier la hiérarchie (priorité)
+    await requireCanManageUser(session.user.id, userId);
+
+    // Débannir l'utilisateur (repasser à active)
     await db
       .update(user)
       .set({
         status: "active",
+        banned: false,
         banReason: null,
         banExpiresAt: null,
       })
       .where(eq(user.id, userId));
 
-    // Récupérer les infos de l'utilisateur pour le log
-    const targetUser = await db.query.user.findFirst({
-      where: eq(user.id, userId),
-    });
-
     // Audit log
+    const headersList = await headers();
     const auditContext = getAuditContext(headersList);
     await logAudit({
       userId: session.user.id,
@@ -342,7 +365,8 @@ export async function unbanUser(userId: string): Promise<ActionResponse> {
       resource: "user",
       resourceId: userId,
       metadata: {
-        targetUserEmail: targetUser?.email,
+        targetUserEmail: targetUser.email,
+        targetUserName: targetUser.name,
       },
       ...auditContext,
     });
@@ -361,7 +385,7 @@ export async function unbanUser(userId: string): Promise<ActionResponse> {
 export async function acceptUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau","CA"]);
 
     // Vérifier que l'utilisateur existe et est en attente
     const targetUser = await db.query.user.findFirst({
@@ -375,6 +399,9 @@ export async function acceptUser(userId: string): Promise<ActionResponse> {
     if (targetUser.status !== "pending") {
       return { success: false, error: "L'utilisateur n'est pas en attente" };
     }
+
+    // Vérifier la hiérarchie (priorité)
+    await requireCanManageUser(session.user.id, userId);
 
     // Passer le statut à "active"
     await db.update(user).set({ status: "active" }).where(eq(user.id, userId));
@@ -433,7 +460,7 @@ export async function acceptUser(userId: string): Promise<ActionResponse> {
 export async function rejectUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau","CA"]);
 
     // Vérifier que l'utilisateur existe et est en attente
     const targetUser = await db.query.user.findFirst({
@@ -447,6 +474,9 @@ export async function rejectUser(userId: string): Promise<ActionResponse> {
     if (targetUser.status !== "pending") {
       return { success: false, error: "L'utilisateur n'est pas en attente" };
     }
+
+    // Vérifier la hiérarchie (priorité)
+    await requireCanManageUser(session.user.id, userId);
 
     // Supprimer l'utilisateur (cascade delete des sessions/accounts/roles)
     await db.delete(user).where(eq(user.id, userId));
@@ -480,7 +510,7 @@ export async function rejectUser(userId: string): Promise<ActionResponse> {
 export async function deleteUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau","CA"]);
 
     // Ne pas autoriser la suppression de son propre compte
     if (userId === session.user.id) {
@@ -498,6 +528,9 @@ export async function deleteUser(userId: string): Promise<ActionResponse> {
     if (!targetUser) {
       return { success: false, error: "Utilisateur introuvable" };
     }
+
+    // Vérifier la hiérarchie (priorité)
+    await requireCanManageUser(session.user.id, userId);
 
     // Supprimer l'utilisateur (cascade delete)
     await db.delete(user).where(eq(user.id, userId));
@@ -533,7 +566,7 @@ export async function resetUserPassword(
 ): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau","CA"]);
 
     // Récupérer l'utilisateur
     const targetUser = await db.query.user.findFirst({
@@ -543,6 +576,9 @@ export async function resetUserPassword(
     if (!targetUser) {
       return { success: false, error: "Utilisateur introuvable" };
     }
+
+    // Vérifier la hiérarchie (priorité)
+    await requireCanManageUser(session.user.id, userId);
 
     // Générer un token de reset password avec Better-Auth
     const headersList = await headers();

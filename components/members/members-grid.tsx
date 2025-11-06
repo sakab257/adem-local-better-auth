@@ -14,17 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   MoreVertical,
   Shield,
   KeyRound,
@@ -38,7 +27,7 @@ import {
   UserCircle,
   Loader2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -47,26 +36,60 @@ import {
   deleteUser,
   unbanUser,
   resetUserPassword,
+  canManageUserAction,
 } from "@/server/members";
 import { ChangeRoleDialog } from "./change-role-dialog";
 import { BanUserDialog } from "./ban-user-dialog";
 import { ViewProfileDialog } from "./view-profile-dialog";
+import { ResetPasswordDialog } from "./reset-password-dialog";
+import { DeleteUserDialog } from "./delete-user-dialog";
+import { RejectUserDialog } from "./reject-user-dialog";
 
 interface MembersGridProps {
   members: UserWithRoles[];
   status: UserStatus;
   currentUserId?: string;
+  canChangeRoles?: boolean;
 }
 
-export function MembersGrid({ members, status, currentUserId }: MembersGridProps) {
+export function MembersGrid({ members, status, currentUserId, canChangeRoles = false }: MembersGridProps) {
   const router = useRouter();
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
   const [isChangeRoleOpen, setIsChangeRoleOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [isViewProfileOpen, setIsViewProfileOpen] = useState(false);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Map pour stocker les permissions de gestion pour chaque membre
+  const [canManageMap, setCanManageMap] = useState<Record<string, boolean>>({});
+
+  // Vérifier la hiérarchie pour tous les membres au chargement
+  useEffect(() => {
+    const checkHierarchy = async () => {
+      const results: Record<string, boolean> = {};
+
+      await Promise.all(
+        members.map(async (member) => {
+          if (member.id === currentUserId) {
+            results[member.id] = false; // Ne peut pas se gérer soi-même
+          } else {
+            const { canManage } = await canManageUserAction(member.id);
+            results[member.id] = canManage;
+          }
+        })
+      );
+
+      setCanManageMap(results);
+    };
+
+    if (currentUserId) {
+      checkHierarchy();
+    }
+  }, [members, currentUserId]);
 
   // Filtrer les membres : exclure l'admin et filtrer selon la recherche
   const filteredMembers = members
@@ -91,16 +114,9 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
     setIsChangeRoleOpen(true);
   };
 
-  const handleResetPassword = async (member: UserWithRoles) => {
-    setLoading(member.id);
-    const result = await resetUserPassword(member.id);
-    setLoading(null);
-
-    if (result.success) {
-      toast.success(`Email de réinitialisation envoyé à ${member.email}`);
-    } else {
-      toast.error(result.error || "Erreur lors de l'envoi de l'email");
-    }
+  const handleResetPassword = (member: UserWithRoles) => {
+    setSelectedUser(member);
+    setIsResetPasswordOpen(true);
   };
 
   const handleBan = (member: UserWithRoles) => {
@@ -108,21 +124,9 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
     setIsBanDialogOpen(true);
   };
 
-  const handleDelete = async (member: UserWithRoles) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${member.name} ?`)) {
-      return;
-    }
-
-    setLoading(member.id);
-    const result = await deleteUser(member.id);
-    setLoading(null);
-
-    if (result.success) {
-      toast.success("Membre supprimé avec succès");
-      router.refresh();
-    } else {
-      toast.error(result.error || "Erreur lors de la suppression");
-    }
+  const handleDelete = (member: UserWithRoles) => {
+    setSelectedUser(member);
+    setIsDeleteDialogOpen(true);
   };
 
   // Actions pour membres en attente
@@ -139,25 +143,9 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
     }
   };
 
-  const handleReject = async (member: UserWithRoles) => {
-    if (
-      !confirm(
-        `Êtes-vous sûr de vouloir rejeter ${member.name} ? Son compte sera supprimé.`
-      )
-    ) {
-      return;
-    }
-
-    setLoading(member.id);
-    const result = await rejectUser(member.id);
-    setLoading(null);
-
-    if (result.success) {
-      toast.success(`${member.name} a été rejeté`);
-      router.refresh();
-    } else {
-      toast.error(result.error || "Erreur lors du rejet");
-    }
+  const handleReject = (member: UserWithRoles) => {
+    setSelectedUser(member);
+    setIsRejectDialogOpen(true);
   };
 
   // Actions pour membres bannis
@@ -230,6 +218,7 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
           const primaryRole = getPrimaryRole(member.roles);
           const isLoading = loading === member.id;
           const isCurrentUser = member.id === currentUserId;
+          const canManage = canManageMap[member.id] ?? false;
 
           return (
             <Card key={member.id} className="hover:shadow-md transition-shadow">
@@ -289,20 +278,27 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
                           </DropdownMenuTrigger>
 
                           <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewProfile(member)}>
-                            <UserIcon className="h-4 w-4 mr-2" />
-                            Voir profil
-                          </DropdownMenuItem>
+                          {/* Voir profil : disponible uniquement si on peut gérer l'utilisateur */}
+                          {canManage && (
+                            <DropdownMenuItem onClick={() => handleViewProfile(member)}>
+                              <UserIcon className="h-4 w-4 mr-2" />
+                              Voir profil
+                            </DropdownMenuItem>
+                          )}
 
-                          {status === "active" && (
+                          {/* Actions pour membres actifs */}
+                          {status === "active" && canManage && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleChangeRole(member)}
-                              >
-                                <Shield className="h-4 w-4 mr-2" />
-                                Changer rôle
-                              </DropdownMenuItem>
+                              {/* Changer rôle : uniquement pour Admin et Moderateur */}
+                              {canChangeRoles && (
+                                <DropdownMenuItem
+                                  onClick={() => handleChangeRole(member)}
+                                >
+                                  <Shield className="h-4 w-4 mr-2" />
+                                  Changer rôle
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 onClick={() => handleResetPassword(member)}
                               >
@@ -317,44 +313,18 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
                                 <Ban className="h-4 w-4 mr-2" />
                                 Bannir
                               </DropdownMenuItem>
-                              <DropdownMenuItem asChild
-                                // onClick={() => handleDelete(member)}
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(member)}
                                 className="text-destructive"
                               >
-                                {/* Bouton supprimer */}
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <div className="flex text-destructive">
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Supprimer le rôle
-                                    </div>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                          Cette action est irréversible. Le rôle sera définitivement supprimé.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        // onClick={handleDelete(member)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      >
-                                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Oui, supprimer
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                                {/* <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer */}
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
                               </DropdownMenuItem>
                             </>
                           )}
 
-                          {status === "pending" && (
+                          {/* Actions pour membres en attente */}
+                          {status === "pending" && canManage && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -374,7 +344,8 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
                             </>
                           )}
 
-                          {status === "banned" && (
+                          {/* Actions pour membres bannis */}
+                          {status === "banned" && canManage && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleUnban(member)}>
@@ -390,6 +361,13 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
                                 Supprimer définitivement
                               </DropdownMenuItem>
                             </>
+                          )}
+
+                          {/* Message si aucune action disponible */}
+                          {!canManage && (
+                            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                              Aucune action disponible
+                            </div>
                           )}
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -454,6 +432,35 @@ export function MembersGrid({ members, status, currentUserId }: MembersGridProps
             onSuccess={() => {
               router.refresh();
               setIsBanDialogOpen(false);
+              setSelectedUser(null);
+            }}
+          />
+          <ResetPasswordDialog
+            user={selectedUser}
+            open={isResetPasswordOpen}
+            onOpenChange={setIsResetPasswordOpen}
+            onSuccess={() => {
+              setIsResetPasswordOpen(false);
+              setSelectedUser(null);
+            }}
+          />
+          <DeleteUserDialog
+            user={selectedUser}
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+            onSuccess={() => {
+              router.refresh();
+              setIsDeleteDialogOpen(false);
+              setSelectedUser(null);
+            }}
+          />
+          <RejectUserDialog
+            user={selectedUser}
+            open={isRejectDialogOpen}
+            onOpenChange={setIsRejectDialogOpen}
+            onSuccess={() => {
+              router.refresh();
+              setIsRejectDialogOpen(false);
               setSelectedUser(null);
             }}
           />

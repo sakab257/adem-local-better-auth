@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { verifySession } from "@/lib/dal";
-import { requireAnyRole } from "@/lib/rbac";
+import { requireAnyRole, isModerator } from "@/lib/rbac";
 import { listUsers } from "@/server/members";
 import { MembersGrid } from "@/components/members/members-grid";
 import { Suspense } from "react";
@@ -16,6 +16,9 @@ export default async function MembersPage() {
   // Vérifier les permissions
   const session = await verifySession();
   await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau", "CA"]);
+
+  // Vérifier si l'utilisateur peut changer les rôles (Admin ou Moderateur)
+  const canChangeRoles = await isModerator(session.user.id);
 
   // Récupérer les membres par statut
   const [activeMembers, pendingMembers, bannedMembers] = await Promise.all([
@@ -54,7 +57,12 @@ export default async function MembersPage() {
             <Suspense fallback={<GridSkeleton />}>
               <Card>
                 <CardContent>
-                  <MembersGrid members={activeMembers.users} status="active" />
+                  <MembersGrid
+                    members={activeMembers.users}
+                    status="active"
+                    currentUserId={session.user.id}
+                    canChangeRoles={canChangeRoles}
+                  />
                 </CardContent>
               </Card>
             </Suspense>
@@ -65,7 +73,12 @@ export default async function MembersPage() {
             <Suspense fallback={<GridSkeleton />}>
               <Card>
                 <CardContent>
-                  <MembersGrid members={pendingMembers.users} status="pending" />
+                  <MembersGrid
+                    members={pendingMembers.users}
+                    status="pending"
+                    currentUserId={session.user.id}
+                    canChangeRoles={canChangeRoles}
+                  />
                 </CardContent>
               </Card>
             </Suspense>
@@ -76,7 +89,12 @@ export default async function MembersPage() {
             <Suspense fallback={<GridSkeleton />}>
               <Card>
                 <CardContent>
-                  <MembersGrid members={bannedMembers.users} status="banned" />
+                  <MembersGrid
+                    members={bannedMembers.users}
+                    status="banned"
+                    currentUserId={session.user.id}
+                    canChangeRoles={canChangeRoles}
+                  />
                 </CardContent>
               </Card>
             </Suspense>

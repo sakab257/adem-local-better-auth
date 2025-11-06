@@ -29,14 +29,26 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
    ✅ **Middleware/Proxy** Next (server) pour protéger `/roles/**`.  
    ✅ **Audit logging** minimal (qui a fait quoi, quand, sur quel objet).
 
-2) **Intégration Better-Auth (plugin Admin)** :
-   ✅ Active `admin()` côté server et `adminClient()` côté client, puis expose des **use-cases** via services : create user, list users (pagination/filters), set role, update user, set user password, ban/unban, impersonate (si dispo).  
-   - Monte une **page Admin → Membres** exploitant ces endpoints (table filtrable/triable paginée, actions en ligne, modals de changement de rôle & reset password).  
-   ✅ **Page Admin → Rôles** : CRUD des rôles/permissions (UI type Discord), mapping visuel des permissions.
+2) ✅ **Intégration Better-Auth (plugin Admin)** :
+   ✅ Active `admin()` côté server avec `impersonatedBy()` autorisant Admin/Modérateur/Bureau/CA
+   ✅ Expose des **server actions** sécurisées : listUsers, setUserRoles, banUser, unbanUser, acceptUser, rejectUser, deleteUser, resetUserPassword, canManageUserAction
+   ✅ **Page /members** complète avec tabs (actifs/en attente/bannis), recherche, toutes actions inline + hiérarchie
+   ✅ **Page /roles** : CRUD des rôles/permissions (UI type Discord), mapping visuel des permissions
+   ✅ **Dialogs de confirmation** : Delete, Reject, Reset Password, Ban avec formulaires
+   ✅ **Système de hiérarchie** : Basé sur field `priority` des rôles
+      - getUserMaxPriority() : Récupère priorité max d'un user
+      - canManageUser() : Vérifie si currentUser peut gérer targetUser (priority strictement >)
+      - requireCanManageUser() : Guard serveur qui throw si hiérarchie non respectée
+      - canManageUserAction() : Server action exposée aux clients
+      - Protection UI : Actions masquées dans dropdown si canManage === false
+      - Protection serveur : Toutes server actions (setUserRoles, ban, unban, delete, accept, reject, resetPassword) vérifient hiérarchie
 
-3) **Invitations Bureau/CA** :
-   - Upload parseur (`csv/xlsx/txt`) → validation → prévisualisation → commit en batch.  
-   - À l’inscription, matching email → assigner `Member` + `Active` + email verified si whitelist.
+3) ✅ **Invitations Bureau/CA** :
+   ✅ Upload parseur (`csv/xlsx/txt`) → validation → prévisualisation → commit en batch
+   ✅ Liste whitelist complète avec actions delete individual + clear all
+   ✅ Parser intelligent supportant 3 formats avec détection automatique
+   ✅ Preview avant import avec validation emails robuste
+   ✅ À l'inscription, matching email → assigner `Member` + `Active` + email verified si whitelist
 
 4) **Éditeur & ressources (skeleton)** :
    - Choisis **tiptap** (extensible, annotations, code blocks, footnotes).  
@@ -59,11 +71,12 @@ Si une décision est ambiguë, propose 2 options et tranche avec une recommandat
 Oui, **implémenter tout le module rôles & permissions** est la bonne prochaine étape : c’est le socle sécurité + gouvernance qui débloque toutes les pages Bureau/CA/Admin et évite de re-écrire après.  
 Ordre recommandé :
 
-1. **Schéma RBAC + seeds + guards** (incluant `auditLogs`).  
-2. **Brancher le plugin Admin de Better-Auth** (server `admin()` + client `adminClient()`), puis exposer **Membres** (list, filters, set role, reset pwd) et **Rôles** (CRUD permissions).  
-3. **Invitations/Whitelist** (import CSV/XLSX avec preview + validation).  
-4. **Éditeur tiptap** (MVP) + workflow de validation (3 validations, bypass SuperCorrector).  
-5. **Dashboard & Calendrier** (ensuite).
+1. ✅ **Schéma RBAC + seeds + guards** (incluant `auditLogs`) - COMPLÉTÉ
+2. ✅ **Brancher le plugin Admin de Better-Auth** (server `admin()` avec `impersonatedBy()`), puis exposer **Membres** (list, filters, set role, reset pwd, ban, unban, accept, reject, delete) et **Rôles** (CRUD permissions) - COMPLÉTÉ
+3. ✅ **Système de hiérarchie** : Basé sur priority des rôles (Admin=100, Modo=80, Bureau/CA=70...) avec protection UI + serveur - COMPLÉTÉ
+4. ✅ **Invitations/Whitelist** (import CSV/XLSX/TXT avec preview + validation + batch operations) - COMPLÉTÉ
+5. **Éditeur tiptap** (MVP) + workflow de validation (3 validations, bypass SuperCorrector) - PROCHAIN
+6. **Dashboard & Calendrier** (après ressources)
 
 ---
 

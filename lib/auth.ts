@@ -2,9 +2,10 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db/drizzle";
-import { schema } from "@/db/schema";
+import { schema, userRoles, roles } from "@/db/schema";
 import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import { admin } from "better-auth/plugins";
+import { eq } from "drizzle-orm";
 
 export const auth = betterAuth({
   // Activation de l'authentification par email/mot de passe
@@ -57,7 +58,31 @@ export const auth = betterAuth({
 
   // Plugin pour Next.js (gestion des cookies)
   plugins: [
-    admin(),
+    admin({
+      // Configurer qui peut utiliser les fonctions admin
+      impersonationSessionDuration: 60 * 60 * 24, // 24 heures
+      async impersonatedBy(context: { user: { id: string } }) {
+        // Vérifier si l'utilisateur a un des rôles admin
+        const userId = context.user.id;
+
+        // Récupérer les rôles de l'utilisateur
+        const userRolesList = await db
+          .select({
+            roleName: roles.name,
+          })
+          .from(userRoles)
+          .innerJoin(roles, eq(userRoles.roleId, roles.id))
+          .where(eq(userRoles.userId, userId));
+
+        // Autoriser si Admin ou Moderateur
+        const allowedRoles = ["Admin", "Moderateur","Bureau","CA"];
+        const hasAllowedRole = userRolesList.some((r) =>
+          allowedRoles.includes(r.roleName)
+        );
+
+        return hasAllowedRole;
+      },
+    }),
     nextCookies(),
   ],
 });

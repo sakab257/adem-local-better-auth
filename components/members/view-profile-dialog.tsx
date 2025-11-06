@@ -163,20 +163,19 @@ export function ViewProfileDialog({
                   <span className="font-medium">Raison :</span> {user.banReason}
                 </p>
               )}
-              {user.banExpiresAt && (
-                <p className="text-sm text-red-700">
-                  <span className="font-medium">Expire le :</span>{" "}
-                  {format(new Date(user.banExpiresAt), "PPP 'à' HH:mm", {
-                    locale: fr,
-                  })}
-                </p>
-              )}
-              {!user.banExpiresAt && (
-                <p className="text-sm text-red-700">
-                  <span className="font-medium">Type :</span> Bannissement
-                  permanent
-                </p>
-              )}
+              <p className="text-sm text-red-700">
+                <span className="font-medium">Type :</span>{" "}
+                {user.banExpiresAt ? (
+                  <>
+                    Bannissement temporaire - Expire le{" "}
+                    {format(new Date(user.banExpiresAt), "PPP 'à' HH:mm", {
+                      locale: fr,
+                    })}
+                  </>
+                ) : (
+                  "Bannissement permanent"
+                )}
+              </p>
             </div>
           )}
         </div>

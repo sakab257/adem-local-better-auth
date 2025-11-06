@@ -48,7 +48,6 @@ export function BanUserDialog({
 }: BanUserDialogProps) {
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [customReason, setCustomReason] = useState<string>("");
-  const [duration, setDuration] = useState<string>("permanent");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -69,21 +68,16 @@ export function BanUserDialog({
         ? customReason
         : BAN_REASONS.find((r) => r.value === selectedReason)?.label || selectedReason;
 
-    // Calculer la durée en jours (null = permanent)
-    const durationInDays =
-      duration === "permanent" ? null : parseInt(duration, 10);
-
     setLoading(true);
-    const result = await banUser(user.id, finalReason, durationInDays);
+    const result = await banUser(user.id, finalReason);
     setLoading(false);
 
     if (result.success) {
-      toast.success(`${user.name} a été banni`);
+      toast.success(`${user.name} a été banni de manière permanente`);
       onSuccess();
       // Reset form
       setSelectedReason("");
       setCustomReason("");
-      setDuration("permanent");
     } else {
       toast.error(result.error || "Erreur lors du bannissement");
     }
@@ -131,21 +125,14 @@ export function BanUserDialog({
             </div>
           )}
 
-          {/* Durée */}
-          <div className="space-y-2">
-            <Label htmlFor="duration">Durée du bannissement</Label>
-            <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger id="duration">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">7 jours</SelectItem>
-                <SelectItem value="14">14 jours</SelectItem>
-                <SelectItem value="30">30 jours</SelectItem>
-                <SelectItem value="90">90 jours</SelectItem>
-                <SelectItem value="permanent">Permanent</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Information bannissement permanent */}
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
+            <p className="text-sm text-destructive font-medium">
+              ⚠️ Le bannissement sera permanent
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              L'utilisateur pourra être débanni manuellement plus tard si nécessaire.
+            </p>
           </div>
         </div>
 

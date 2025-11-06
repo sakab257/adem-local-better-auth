@@ -89,6 +89,7 @@ export function ChangeRoleDialog({
             <p className="text-sm text-muted-foreground">Chargement...</p>
           ) : (
             availableRoles
+              .filter((role) => role.name !== "Admin")
               .sort((a, b) => b.priority - a.priority)
               .map((role) => (
                 <div key={role.id} className="flex items-center space-x-2">

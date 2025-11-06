@@ -359,3 +359,72 @@ export async function isBureauOrCA(userId: string): Promise<boolean> {
 export async function isCorrector(userId: string): Promise<boolean> {
   return hasAnyRole(userId, ["Admin", "Moderateur", "Correcteur", "SuperCorrecteur"]);
 }
+
+/**
+ * Obtenir la priorité maximale d'un utilisateur (son rôle le plus haut)
+ *
+ * @example
+ * const priority = await getUserMaxPriority(userId);
+ * // priority = 100 si Admin, 80 si Moderateur, etc.
+ */
+export async function getUserMaxPriority(userId: string): Promise<number> {
+  const userRolesList = await getUserRoles(userId);
+
+  if (userRolesList.length === 0) {
+    return 0; // Aucun rôle = priorité minimale
+  }
+
+  // Retourner la priorité la plus élevée
+  return Math.max(...userRolesList.map((r) => r.priority));
+}
+
+/**
+ * Vérifier si un utilisateur peut gérer un autre utilisateur
+ * Basé sur la hiérarchie des rôles (priority)
+ *
+ * Règle : Un utilisateur peut gérer quelqu'un SEULEMENT si sa priorité max
+ * est STRICTEMENT SUPÉRIEURE à la priorité max de la cible
+ *
+ * @example
+ * // Moderateur (priority 80) peut gérer Bureau (70) ✓
+ * // Bureau (priority 70) NE PEUT PAS gérer Moderateur (80) ✗
+ * // Admin (priority 100) peut gérer tout le monde ✓
+ *
+ * @param currentUserId - ID de l'utilisateur qui veut effectuer l'action
+ * @param targetUserId - ID de l'utilisateur cible
+ * @returns true si l'utilisateur courant peut gérer la cible
+ */
+export async function canManageUser(
+  currentUserId: string,
+  targetUserId: string
+): Promise<boolean> {
+  // Un utilisateur ne peut pas se gérer lui-même via ces actions
+  if (currentUserId === targetUserId) {
+    return false;
+  }
+
+  const [currentPriority, targetPriority] = await Promise.all([
+    getUserMaxPriority(currentUserId),
+    getUserMaxPriority(targetUserId),
+  ]);
+
+  // Peut gérer SEULEMENT si priorité strictement supérieure
+  return currentPriority > targetPriority;
+}
+
+/**
+ * Guard pour server actions : Require que l'utilisateur puisse gérer la cible
+ * Throw une erreur si la hiérarchie n'est pas respectée
+ */
+export async function requireCanManageUser(
+  currentUserId: string,
+  targetUserId: string
+): Promise<void> {
+  const canManage = await canManageUser(currentUserId, targetUserId);
+
+  if (!canManage) {
+    throw new Error(
+      "Accès refusé : vous ne pouvez pas gérer un utilisateur de même niveau ou supérieur dans la hiérarchie"
+    );
+  }
+}
