@@ -1,7 +1,7 @@
 "use server";
 
 import { verifySession } from "@/lib/dal";
-import { requireAnyRole, getUserRoles, requireCanManageUser } from "@/lib/rbac";
+import { requireAnyRole, getUserRoles, requireCanManageUser, can } from "@/lib/rbac";
 import { db } from "@/db/drizzle";
 import { user, userRoles, roles } from "@/db/schema";
 import { eq, and, or, like, desc, asc, count } from "drizzle-orm";
@@ -43,7 +43,7 @@ export async function listUsers(
 ): Promise<ListUsersResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau", "CA"]);
+    await can(session.user.id, "members:read");
 
     const {
       search,

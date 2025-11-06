@@ -69,7 +69,7 @@ export async function addEmailToWhitelist(
     await logAudit({
       userId: session.user.id,
       action: "create",
-      resource: "whitelist",
+      resource: "user",
       resourceId: normalizedEmail,
       metadata: { email: normalizedEmail },
       ...auditContext,
@@ -134,7 +134,7 @@ export async function addEmailsToWhitelist(
     await logAudit({
       userId: session.user.id,
       action: "create",
-      resource: "whitelist",
+      resource: "user",
       resourceId: "batch",
       metadata: {
         addedCount: newEmails.length,
@@ -187,7 +187,7 @@ export async function removeEmailFromWhitelist(
     await logAudit({
       userId: session.user.id,
       action: "delete",
-      resource: "whitelist",
+      resource: "user",
       resourceId: emailId,
       metadata: { email: entry.email },
       ...auditContext,
@@ -226,7 +226,7 @@ export async function clearWhitelist(): Promise<ActionResponse> {
     await logAudit({
       userId: session.user.id,
       action: "delete",
-      resource: "whitelist",
+      resource: "user",
       resourceId: "all",
       metadata: { count },
       ...auditContext,

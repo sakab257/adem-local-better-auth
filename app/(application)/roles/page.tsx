@@ -1,5 +1,5 @@
 import { verifySession } from "@/lib/dal";
-import { isAdmin, isModerator } from "@/lib/rbac";
+import { can, isAdmin, isModerator } from "@/lib/rbac";
 import { listRoles, countRoleMembers } from "@/server/roles";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -11,12 +11,10 @@ import { Separator } from "@/components/ui/separator";
 export default async function RolesPage() {
   // Vérifier la session et les permissions
   const session = await verifySession();
-  const userIsAdmin = await isAdmin(session.user.id);
-  const userIsModerator = await isModerator(session.user.id);
+  const canSeeRoles = await can(session.user.id, "roles:read");
 
-  // Double vérification (middleware + page level)
-  if (!userIsAdmin && !userIsModerator) {
-    redirect("/");
+  if(!canSeeRoles){
+    redirect('/');
   }
 
   // Récupérer tous les rôles (sans Admin)

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from './lib/auth'
-import { isAdmin, isModerator, isBureauOrCA } from './lib/rbac'
+import { isAdmin, isModerator, isBureauOrCA, can } from './lib/rbac'
 
 // Définir les routes publiques et d'authentification
 const authRoutes = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password', '/auth/reset-password']
@@ -70,20 +70,20 @@ export async function proxy(request: NextRequest) {
     // 🔐 PROTECTION RBAC - Routes par rôle
     // ============================================
 
-    // Protection /roles/** - Réservé aux Admins et Modérateurs
+    // Protection /roles/** - Réservé aux Admins et Modérateurs et autres...
     if (pathname.startsWith('/roles') && session?.user) {
-        const userIsModerator = await isModerator(session.user.id)
+        const canSeeRoles = await can(session.user.id,"roles:read");
 
-        if (!userIsModerator) {
+        if (!canSeeRoles) {
             return NextResponse.redirect(new URL('/', request.url))
         }
     }
 
-    // Protection /bureau/** - Réservé aux Admins, Bureau et CA
-    if (pathname.startsWith('/bureau') && session?.user) {
-        const userIsBureauOrCA = await isBureauOrCA(session.user.id)
+    // Protection /membres/** - Réservé à l'Admin, Moderateurs, Bureau et CA et autres...
+    if (pathname.startsWith('/members') && session?.user) {
+        const canSeeMembers = await can(session.user.id,"members:read");
 
-        if (!userIsBureauOrCA) {
+        if (!canSeeMembers) {
             return NextResponse.redirect(new URL('/', request.url))
         }
     }

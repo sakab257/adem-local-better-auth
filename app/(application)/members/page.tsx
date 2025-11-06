@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { verifySession } from "@/lib/dal";
-import { requireAnyRole, isModerator } from "@/lib/rbac";
+import { requireAnyRole, isModerator, can } from "@/lib/rbac";
 import { listUsers } from "@/server/members";
 import { MembersGrid } from "@/components/members/members-grid";
 import { Suspense } from "react";
@@ -15,7 +15,7 @@ export const metadata = {
 export default async function MembersPage() {
   // Vérifier les permissions
   const session = await verifySession();
-  await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau", "CA"]);
+  await can(session.user.id, "members:read");
 
   // Vérifier si l'utilisateur peut changer les rôles (Admin ou Moderateur)
   const canChangeRoles = await isModerator(session.user.id);
