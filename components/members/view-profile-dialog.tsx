@@ -38,15 +38,15 @@ export function ViewProfileDialog({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800 border-green-300";
+        return "bg-validate/30 text-validate border-validate/50";
       case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+        return "bg-warning/30 text-warning border-warning/50";
       case "suspended":
-        return "bg-orange-100 text-orange-800 border-orange-300";
+        return "bg-destructive/30 text-destructive border-destructive/50";
       case "banned":
-        return "bg-red-100 text-red-800 border-red-300";
+        return "bg-destructive/30 text-destructive border-destructive/50";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
+        return "bg-muted/30 text-muted border-muted/50";
     }
   };
 
@@ -91,8 +91,8 @@ export function ViewProfileDialog({
                   <Mail className="h-4 w-4" />
                   <span>{user.email}</span>
                   {user.emailVerified && (
-                    <Badge variant="outline" className="text-xs">
-                      ✓ Vérifié
+                    <Badge variant="outline" className="text-xs bg-validate/30 text-validate">
+                      ✓
                     </Badge>
                   )}
                 </div>
@@ -122,10 +122,11 @@ export function ViewProfileDialog({
                   .map((role) => (
                     <Badge
                       key={role.id}
+                      className="px-4 font-bold py-1"
                       variant="secondary"
                       style={{
                         backgroundColor: role.color
-                          ? `${role.color}20`
+                          ? `${role.color}`
                           : undefined,
                         borderColor: role.color || undefined,
                         border: "1px solid",

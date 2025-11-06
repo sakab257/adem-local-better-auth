@@ -38,6 +38,27 @@ export function RolePermissionsTab({
     return acc;
   }, {} as Record<string, Permission[]>);
 
+  const getRoleResources = (status: string) => {
+    switch (status) {
+      case "events":
+        return "évenements";
+      case "feedback":
+        return "feedback";
+      case "logs":
+        return "logs";
+      case "members":
+        return "membres";
+      case "resources":
+        return "ressources";
+      case "roles":
+        return "rôles";
+      case "tasks":
+        return "tâches";
+      default:
+        return "Permission";
+    }
+  };
+
   const togglePermission = (permissionId: string) => {
     setSelectedPermissions((prev) => {
       const updated = prev.includes(permissionId)
@@ -86,7 +107,7 @@ export function RolePermissionsTab({
           return (
             <Card key={resource}>
               <CardHeader>
-                <CardTitle className="capitalize text-lg">{resource}</CardTitle>
+                <CardTitle className="capitalize text-lg">{getRoleResources(resource)}</CardTitle>
                 <CardDescription>
                   {selectedCount} / {resourcePerms.length} permission(s) activée(s)
                 </CardDescription>
