@@ -7,7 +7,7 @@ import { whitelist } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { logAudit, getAuditContext } from "@/lib/audit";
 import { headers } from "next/headers";
-import { ActionResponse, WhitelistEntry } from "@/lib/types";
+import { ActionResponse, WhitelistEntry, DataResponse } from "@/lib/types";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 
@@ -19,7 +19,7 @@ import { revalidatePath } from "next/cache";
 // LISTE DES EMAILS WHITELIST
 // ============================================
 
-export async function listWhitelistEmails(): Promise<WhitelistEntry[]> {
+export async function listWhitelistEmails(): Promise<DataResponse<WhitelistEntry[]>> {
   try {
     const session = await verifySession();
     await requireAllPermissions(session.user.id, ["members:invite","members:read"]);
@@ -29,10 +29,13 @@ export async function listWhitelistEmails(): Promise<WhitelistEntry[]> {
       .from(whitelist)
       .orderBy(whitelist.createdAt);
 
-    return emails;
+    return { success: true, data: emails };
   } catch (error) {
     console.error("Erreur lors de la récupération de la whitelist:", error);
-    throw new Error("Impossible de récupérer la whitelist");
+    return {
+      success: false,
+      error: "Impossible de récupérer la whitelist. Veuillez réessayer.",
+    };
   }
 }
 

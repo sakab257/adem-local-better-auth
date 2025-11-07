@@ -62,6 +62,9 @@ export interface ActionResponseWithData<T> extends ActionResponse {
   data?: T;
 }
 
+// Alias pour les fonctions de lecture (plus explicite)
+export type DataResponse<T> = ActionResponseWithData<T>;
+
 // ============================================
 // TYPES ROLES & PERMISSIONS
 // ============================================

@@ -4,6 +4,8 @@ import { listWhitelistEmails } from "@/server/invitations";
 import { WhitelistList } from "@/components/invitations/whitelist-list";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export const metadata = {
   title: "Invitations - ADEM",
@@ -20,7 +22,32 @@ export default async function InvitationsPage() {
   await requireAllPermissions(session.user.id, ["members:invite","members:read"])
 
   // Récupérer la whitelist
-  const whitelistEmails = await listWhitelistEmails();
+  const whitelistResult = await listWhitelistEmails();
+
+  // Gérer les erreurs
+  if (!whitelistResult.success) {
+    return (
+      <div className="container max-w-4xl py-10 px-4 mx-auto">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Invitations</h1>
+            <p className="text-muted-foreground">
+              Gérez la whitelist des emails autorisés
+            </p>
+          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>
+              {whitelistResult.error || "Erreur lors du chargement de la whitelist"}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  const whitelistEmails = whitelistResult.data!;
 
   return (
     <div className="container max-w-4xl py-10 px-4 mx-auto">

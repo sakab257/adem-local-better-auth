@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
-import { Role, Permission, RoleWithPermissions, RoleWithMembers, RoleMember, CreateRoleInput, UpdateRoleInput } from "@/lib/types";
+import { Role, Permission, RoleWithPermissions, RoleWithMembers, RoleMember, CreateRoleInput, UpdateRoleInput, DataResponse } from "@/lib/types";
 
 // ============================================
 // FICHIER REFACTORISE AVEC requirePermission / requireAllPermissions
@@ -31,88 +31,112 @@ import { Role, Permission, RoleWithPermissions, RoleWithMembers, RoleMember, Cre
 /**
  * Liste tous les rôles (triés par priority desc) REFACTORISE AVEC can(id,permission)
  */
-export async function listRoles(): Promise<Role[]> {
-  const session = await verifySession();
-  await requirePermission(session.user.id, "roles:read");
+export async function listRoles(): Promise<DataResponse<Role[]>> {
+  try {
+    const session = await verifySession();
+    await requirePermission(session.user.id, "roles:read");
 
-  const allRoles = await db
-    .select()
-    .from(roles)
-    .orderBy(desc(roles.priority));
+    const allRoles = await db
+      .select()
+      .from(roles)
+      .orderBy(desc(roles.priority));
 
-  return allRoles;
+    return { success: true, data: allRoles };
+  } catch (error) {
+    console.error("Erreur lors de la récupération des rôles:", error);
+    return { success: false, error: "Impossible de récupérer les rôles. Veuillez réessayer." };
+  }
 }
 
 /**
  * Récupère un rôle par ID avec ses permissions REFACTORISE AVEC can(id,permission)
  */
-export async function getRoleById(roleId: string): Promise<RoleWithPermissions | null> {
-  const session = await verifySession();
-  await requirePermission(session.user.id, "roles:read");
+export async function getRoleById(roleId: string): Promise<DataResponse<RoleWithPermissions | null>> {
+  try {
+    const session = await verifySession();
+    await requirePermission(session.user.id, "roles:read");
 
-  const role = await db.query.roles.findFirst({
-    where: eq(roles.id, roleId),
-  });
+    const role = await db.query.roles.findFirst({
+      where: eq(roles.id, roleId),
+    });
 
-  if (!role) return null;
+    if (!role) {
+      return { success: true, data: null };
+    }
 
-  // Récupérer les permissions du rôle
-  const rolePerms = await db
-    .select({
-      id: permissions.id,
-      name: permissions.name,
-      description: permissions.description,
-      resource: permissions.resource,
-      action: permissions.action,
-      createdAt: permissions.createdAt,
-    })
-    .from(rolePermissions)
-    .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(rolePermissions.roleId, roleId));
+    // Récupérer les permissions du rôle
+    const rolePerms = await db
+      .select({
+        id: permissions.id,
+        name: permissions.name,
+        description: permissions.description,
+        resource: permissions.resource,
+        action: permissions.action,
+        createdAt: permissions.createdAt,
+      })
+      .from(rolePermissions)
+      .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(rolePermissions.roleId, roleId));
 
-  return {
-    ...role,
-    permissions: rolePerms,
-  };
+    return {
+      success: true,
+      data: {
+        ...role,
+        permissions: rolePerms,
+      },
+    };
+  } catch (error) {
+    console.error("Erreur lors de la récupération du rôle:", error);
+    return { success: false, error: "Impossible de récupérer le rôle. Veuillez réessayer." };
+  }
 }
 
 /**
  * Récupère tous les membres d'un rôle REFACTORISE AVEC can(id,permission)
  */
-export async function getRoleMembers(roleId: string): Promise<RoleMember[]> {
-  const session = await verifySession();
-  await requirePermission(session.user.id, "roles:read");
+export async function getRoleMembers(roleId: string): Promise<DataResponse<RoleMember[]>> {
+  try {
+    const session = await verifySession();
+    await requirePermission(session.user.id, "roles:read");
 
+    const members = await db
+      .select({
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        userImage: user.image,
+        assignedAt: userRoles.assignedAt,
+      })
+      .from(userRoles)
+      .innerJoin(user, eq(userRoles.userId, user.id))
+      .where(eq(userRoles.roleId, roleId))
+      .orderBy(desc(userRoles.assignedAt));
 
-  const members = await db
-    .select({
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      userImage: user.image,
-      assignedAt: userRoles.assignedAt,
-    })
-    .from(userRoles)
-    .innerJoin(user, eq(userRoles.userId, user.id))
-    .where(eq(userRoles.roleId, roleId))
-    .orderBy(desc(userRoles.assignedAt));
-
-  return members;
+    return { success: true, data: members };
+  } catch (error) {
+    console.error("Erreur lors de la récupération des membres du rôle:", error);
+    return { success: false, error: "Impossible de récupérer les membres du rôle. Veuillez réessayer." };
+  }
 }
 
 /**
  * Récupère toutes les permissions disponibles (groupées par resource) REFACTORISE AVEC can(id,permission)
  */
-export async function getAllPermissions(): Promise<Permission[]> {
-  const session = await verifySession();
-  await requirePermission(session.user.id, "roles:read");
+export async function getAllPermissions(): Promise<DataResponse<Permission[]>> {
+  try {
+    const session = await verifySession();
+    await requirePermission(session.user.id, "roles:read");
 
-  const allPermissions = await db
-    .select()
-    .from(permissions)
-    .orderBy(permissions.resource, permissions.action);
+    const allPermissions = await db
+      .select()
+      .from(permissions)
+      .orderBy(permissions.resource, permissions.action);
 
-  return allPermissions;
+    return { success: true, data: allPermissions };
+  } catch (error) {
+    console.error("Erreur lors de la récupération des permissions:", error);
+    return { success: false, error: "Impossible de récupérer les permissions. Veuillez réessayer." };
+  }
 }
 
 // ============================================
@@ -285,16 +309,21 @@ export async function updateRolePermissions(
 /**
  * Compte le nombre d'utilisateurs ayant un rôle
  */
-export async function countRoleMembers(roleId: string): Promise<number> {
-  const session = await verifySession();
-  await requireAllPermissions(session.user.id, ["roles:read","members:read"])
+export async function countRoleMembers(roleId: string): Promise<DataResponse<number>> {
+  try {
+    const session = await verifySession();
+    await requireAllPermissions(session.user.id, ["roles:read", "members:read"]);
 
-  const result = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(userRoles)
-    .where(eq(userRoles.roleId, roleId));
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(userRoles)
+      .where(eq(userRoles.roleId, roleId));
 
-  return Number(result[0]?.count || 0);
+    return { success: true, data: Number(result[0]?.count || 0) };
+  } catch (error) {
+    console.error("Erreur lors du comptage des membres du rôle:", error);
+    return { success: false, error: "Impossible de compter les membres du rôle. Veuillez réessayer." };
+  }
 }
 
 /**
@@ -315,7 +344,10 @@ export async function deleteRole(roleId: string): Promise<{ success: boolean; er
     }
 
     // Compter les membres
-    const memberCount = await countRoleMembers(roleId);
+    const memberCountResult = await countRoleMembers(roleId);
+    if (!memberCountResult.success) {
+      return { success: false, error: memberCountResult.error };
+    }
 
     // Récupérer le rôle "Membre" pour réassignation
     const membreRole = await db.query.roles.findFirst({
@@ -397,7 +429,7 @@ export async function removeUserFromRole(
     }
 
     // Supprimer le rôle
-    const deleteResult = await db
+    await db
       .delete(userRoles)
       .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)));
 

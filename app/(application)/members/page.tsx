@@ -1,11 +1,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { verifySession } from "@/lib/dal";
-import { requireAnyRole, isModerator, can } from "@/lib/rbac";
+import { can, requirePermission } from "@/lib/rbac";
 import { listUsers } from "@/server/members";
 import { MembersGrid } from "@/components/members/members-grid";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export const metadata = {
   title: "Gestion des membres - ADEM",
@@ -15,17 +17,48 @@ export const metadata = {
 export default async function MembersPage() {
   // Vérifier les permissions
   const session = await verifySession();
-  await can(session.user.id, "members:read");
+  await requirePermission(session.user.id, "members:read");
 
-  // Vérifier si l'utilisateur peut changer les rôles (Admin ou Moderateur)
-  const canChangeRoles = await isModerator(session.user.id);
+  // Vérifier si l'utilisateur peut changer les rôles
+  const canChangeRoles = await can(session.user.id, "members:change_role");
 
   // Récupérer les membres par statut
-  const [activeMembers, pendingMembers, bannedMembers] = await Promise.all([
+  const [activeMembersResult, pendingMembersResult, bannedMembersResult] = await Promise.all([
     listUsers({ status: "active", limit: 50 }),
     listUsers({ status: "pending", limit: 50 }),
     listUsers({ status: "banned", limit: 50 }),
   ]);
+
+  // Gérer les erreurs
+  if (!activeMembersResult.success || !pendingMembersResult.success || !bannedMembersResult.success) {
+    const errorMessage =
+      activeMembersResult.error ||
+      pendingMembersResult.error ||
+      bannedMembersResult.error ||
+      "Erreur lors du chargement des membres";
+
+    return (
+      <div className="container max-w-4xl py-10 px-4 mx-auto">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Gestion des membres</h1>
+            <p className="text-muted-foreground">
+              Gérez les membres de l'association ADEM
+            </p>
+          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  const activeMembers = activeMembersResult.data!;
+  const pendingMembers = pendingMembersResult.data!;
+  const bannedMembers = bannedMembersResult.data!;
 
   return (
     <div className="container max-w-4xl py-10 px-4 mx-auto">

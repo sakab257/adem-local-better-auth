@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { setUserRoles, getAllRoles } from "@/server/members";
+import { setUserRoles, getAllRoles, getManageableRoles } from "@/server/members";
 
 interface ChangeRoleDialogProps {
   user: UserWithRoles;
@@ -38,12 +38,13 @@ export function ChangeRoleDialog({
   // Charger les rôles disponibles
   useEffect(() => {
     async function loadRoles() {
-      try {
-        const data = await getAllRoles();
-        setAvailableRoles(data);
-      } catch (error) {
-        console.error("Erreur lors du chargement des rôles:", error);
-        toast.error("Impossible de charger les rôles");
+      const result = await getManageableRoles();
+
+      if (result.success && result.data) {
+        setAvailableRoles(result.data);
+      } else {
+        console.error("Erreur lors du chargement des rôles:", result.error);
+        toast.error(result.error || "Impossible de charger les rôles");
       }
     }
 

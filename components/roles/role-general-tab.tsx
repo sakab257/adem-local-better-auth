@@ -25,7 +25,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { updateRole, deleteRole, type Role } from "@/server/roles";
+import { updateRole, deleteRole } from "@/server/roles";
+import { Role } from "@/lib/types";
 
 const updateRoleSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),

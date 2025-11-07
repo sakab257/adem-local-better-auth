@@ -25,25 +25,21 @@ import {
   User as UserIcon,
   Search,
   UserCircle,
-  Loader2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   acceptUser,
-  rejectUser,
-  deleteUser,
   unbanUser,
-  resetUserPassword,
-  canManageUserAction,
+  canManageUsersAction,
 } from "@/server/members";
-import { ChangeRoleDialog } from "./change-role-dialog";
-import { BanUserDialog } from "./ban-user-dialog";
-import { ViewProfileDialog } from "./view-profile-dialog";
-import { ResetPasswordDialog } from "./reset-password-dialog";
-import { DeleteUserDialog } from "./delete-user-dialog";
-import { RejectUserDialog } from "./reject-user-dialog";
+import { ChangeRoleDialog } from "@/components/members/change-role-dialog";
+import { BanUserDialog } from "@/components/members/ban-user-dialog";
+import { ViewProfileDialog } from "@/components/members/view-profile-dialog";
+import { ResetPasswordDialog } from "@/components/members/reset-password-dialog";
+import { DeleteUserDialog } from "@/components/members/delete-user-dialog";
+import { RejectUserDialog } from "@/components/members/reject-user-dialog";
 
 interface MembersGridProps {
   members: UserWithRoles[];
@@ -67,21 +63,26 @@ export function MembersGrid({ members, status, currentUserId, canChangeRoles = f
   // Map pour stocker les permissions de gestion pour chaque membre
   const [canManageMap, setCanManageMap] = useState<Record<string, boolean>>({});
 
-  // Vérifier la hiérarchie pour tous les membres au chargement
+  // Vérifier la hiérarchie pour tous les membres au chargement (BATCH)
   useEffect(() => {
     const checkHierarchy = async () => {
-      const results: Record<string, boolean> = {};
+      // Filtrer les IDs à vérifier (exclure l'utilisateur courant)
+      const userIdsToCheck = members
+        .filter((member) => member.id !== currentUserId)
+        .map((member) => member.id);
 
-      await Promise.all(
-        members.map(async (member) => {
-          if (member.id === currentUserId) {
-            results[member.id] = false; // Ne peut pas se gérer soi-même
-          } else {
-            const { canManage } = await canManageUserAction(member.id);
-            results[member.id] = canManage;
-          }
-        })
-      );
+      if (userIdsToCheck.length === 0) {
+        setCanManageMap({});
+        return;
+      }
+
+      // Appel batch unique pour tous les membres
+      const results = await canManageUsersAction(userIdsToCheck);
+
+      // Ajouter l'utilisateur courant avec false
+      if (currentUserId) {
+        results[currentUserId] = false;
+      }
 
       setCanManageMap(results);
     };
@@ -290,7 +291,7 @@ export function MembersGrid({ members, status, currentUserId, canChangeRoles = f
                           {status === "active" && canManage && (
                             <>
                               <DropdownMenuSeparator />
-                              {/* Changer rôle : uniquement pour Admin et Moderateur */}
+                              {/* Changer rôle : uniquement pour ceux qui ont la permission change_role */}
                               {canChangeRoles && (
                                 <DropdownMenuItem
                                   onClick={() => handleChangeRole(member)}

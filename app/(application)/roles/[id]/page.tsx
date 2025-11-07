@@ -1,5 +1,5 @@
 import { verifySession } from "@/lib/dal";
-import { isAdmin, isModerator } from "@/lib/rbac";
+import { isAdmin, isModerator, requireAllPermissions } from "@/lib/rbac";
 import { getRoleById, getRoleMembers, getAllPermissions, countRoleMembers } from "@/server/roles";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RoleGeneralTab } from "@/components/roles/role-general-tab";
 import { RolePermissionsTab } from "@/components/roles/role-permissions-tab";
 import { RoleMembersTab } from "@/components/roles/role-members-tab";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface RolePageProps {
   params: Promise<{
@@ -22,29 +23,69 @@ export default async function RolePage({ params }: RolePageProps) {
 
   // Vérifier la session et les permissions
   const session = await verifySession();
-  const userIsAdmin = await isAdmin(session.user.id);
-  const userIsModerator = await isModerator(session.user.id);
-
-  // Double vérification (middleware + page level)
-  if (!userIsAdmin && !userIsModerator) {
-    redirect("/");
-  }
+  await requireAllPermissions(session.user.id, ["roles:read","roles:update"]);
 
   // Récupérer le rôle avec ses permissions
-  const roleWithPermissions = await getRoleById(roleId);
+  const roleResult = await getRoleById(roleId);
+  if (!roleResult.success) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
+        <Alert variant="destructive">
+          <AlertDescription>{roleResult.error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
+  const roleWithPermissions = roleResult.data;
   if (!roleWithPermissions) {
-    notFound();
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
+        <Alert variant="destructive">
+          <AlertDescription>Role sans permission(s) trouvé ! Veuillez réessayer !</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   // Récupérer les membres du rôle
-  const members = await getRoleMembers(roleId);
+  const membersResult = await getRoleMembers(roleId);
+  if (!membersResult.success) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
+        <Alert variant="destructive">
+          <AlertDescription>{membersResult.error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  const members = membersResult.data!;
 
   // Récupérer toutes les permissions disponibles
-  const allPermissions = await getAllPermissions();
+  const allPermissionsResult = await getAllPermissions();
+  if (!allPermissionsResult.success) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
+        <Alert variant="destructive">
+          <AlertDescription>{allPermissionsResult.error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  const allPermissions = allPermissionsResult.data!;
 
   // Compter les membres
-  const memberCount = await countRoleMembers(roleId);
+  const memberCountResult = await countRoleMembers(roleId);
+  if (!memberCountResult.success) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
+        <Alert variant="destructive">
+          <AlertDescription>{memberCountResult.error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  const memberCount = memberCountResult.data!;
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">

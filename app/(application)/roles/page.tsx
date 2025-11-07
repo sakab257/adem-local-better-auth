@@ -1,5 +1,5 @@
 import { verifySession } from "@/lib/dal";
-import { can, isAdmin, isModerator } from "@/lib/rbac";
+import { can, isAdmin, isModerator, requirePermission } from "@/lib/rbac";
 import { listRoles, countRoleMembers } from "@/server/roles";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -7,30 +7,45 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default async function RolesPage() {
   // Vérifier la session et les permissions
   const session = await verifySession();
-  const canSeeRoles = await can(session.user.id, "roles:read");
-
-  if(!canSeeRoles){
-    redirect('/');
-  }
+  await requirePermission(session.user.id, "roles:read");
 
   // Récupérer tous les rôles (sans Admin)
-  const allRoles = await listRoles();
-  const roles = allRoles.filter((role) => role.name !== "Admin");
+  const rolesResult = await listRoles();
+  if (!rolesResult.success) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto pt-10">
+        <Alert variant="destructive">
+          <AlertDescription>{rolesResult.error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const roles = rolesResult.data!.filter((role) => role.name !== "Admin");
 
   // Récupérer le nombre de membres pour chaque rôle
-  const rolesWithMembers = await Promise.all(
+  const rolesWithMembersResults = await Promise.all(
     roles.map(async (role) => {
-      const memberCount = await countRoleMembers(role.id);
-      return { ...role, memberCount };
+      const memberCountResult = await countRoleMembers(role.id);
+      return {
+        role,
+        memberCount: memberCountResult.success ? memberCountResult.data! : 0
+      };
     })
   );
 
+  const rolesWithMembers = rolesWithMembersResults.map(({ role, memberCount }) => ({
+    ...role,
+    memberCount
+  }));
+
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto">
+    <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto pt-10">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

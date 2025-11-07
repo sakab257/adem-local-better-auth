@@ -1,10 +1,18 @@
 "use server";
 
 import { verifySession } from "@/lib/dal";
-import { requireAnyRole, getUserRoles, requireCanManageUser, can } from "@/lib/rbac";
+import {
+  getUserRoles,
+  requireCanManageUser,
+  can,
+  requirePermission,
+  requireAllPermissions,
+  canManageUser,
+  getUserMaxPriority
+} from "@/lib/rbac";
 import { db } from "@/db/drizzle";
 import { user, userRoles, roles } from "@/db/schema";
-import { eq, and, or, like, desc, asc, count } from "drizzle-orm";
+import { eq, and, or, like, desc, asc, count, lt } from "drizzle-orm";
 import { logAudit, getAuditContext } from "@/lib/audit";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -14,18 +22,23 @@ import {
   ListUsersResponse,
   ActionResponse,
   UserStatus,
+  DataResponse,
 } from "@/lib/types";
+
+// ============================================
+// FICHIER REFACTORISE AVEC requirePermission / requireAllPermissions
+// ============================================
 
 // ============================================
 // RÉCUPÉRER TOUS LES RÔLES DISPONIBLES
 // ============================================
 
-export async function getAllRoles(): Promise<
-  Array<{ id: string; name: string; color: string | null; priority: number }>
-> {
+type RoleData = { id: string; name: string; color: string | null; priority: number };
+
+export async function getAllRoles(): Promise<DataResponse<RoleData[]>> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAllPermissions(session.user.id, ["members:read","members:update"]);
 
     const allRoles = await db
       .select({
@@ -37,10 +50,59 @@ export async function getAllRoles(): Promise<
       .from(roles)
       .orderBy(desc(roles.priority));
 
-    return allRoles;
+    return { success: true, data: allRoles };
   } catch (error) {
     console.error("Erreur lors de la récupération des rôles:", error);
-    throw new Error("Impossible de récupérer les rôles");
+    return {
+      success: false,
+      error: "Impossible de récupérer les rôles. Veuillez réessayer.",
+    };
+  }
+}
+
+// ============================================
+// RÉCUPÉRER LES RÔLES GÉRABLES PAR L'UTILISATEUR COURANT
+// ============================================
+
+/**
+ * Retourne tous les rôles que l'utilisateur courant peut assigner à d'autres utilisateurs
+ * en fonction de sa hiérarchie (priorité max)
+ *
+ * Règle : Un utilisateur peut assigner uniquement les rôles qui ont une priorité
+ * strictement inférieure à sa propre priorité maximale
+ *
+ * @example
+ * // Si l'utilisateur a le rôle "Moderateur" (priority=80)
+ * // Il pourra gérer : Bureau (70), CA (70), SuperCorrecteur (60), etc.
+ * // Mais PAS : Admin (100), Moderateur (80)
+ */
+export async function getManageableRoles(): Promise<DataResponse<RoleData[]>> {
+  try {
+    const session = await verifySession();
+    await requireAllPermissions(session.user.id, ["members:read","members:update","members:change_role"]);
+
+    // Récupérer la priorité maximale de l'utilisateur courant
+    const currentUserMaxPriority = await getUserMaxPriority(session.user.id);
+
+    // Récupérer tous les rôles avec une priorité STRICTEMENT inférieure
+    const manageableRoles = await db
+      .select({
+        id: roles.id,
+        name: roles.name,
+        color: roles.color,
+        priority: roles.priority,
+      })
+      .from(roles)
+      .where(lt(roles.priority, currentUserMaxPriority))
+      .orderBy(desc(roles.priority));
+
+    return { success: true, data: manageableRoles };
+  } catch (error) {
+    console.error("Erreur lors de la récupération des rôles gérables:", error);
+    return {
+      success: false,
+      error: "Impossible de récupérer les rôles gérables. Veuillez réessayer.",
+    };
   }
 }
 
@@ -53,7 +115,9 @@ export async function canManageUserAction(
 ): Promise<{ canManage: boolean }> {
   try {
     const session = await verifySession();
-    const { canManageUser } = await import("@/lib/rbac");
+
+    await requireAllPermissions(session.user.id, ["members:read","members:update"]);
+
     const result = await canManageUser(session.user.id, targetUserId);
     return { canManage: result };
   } catch (error) {
@@ -63,12 +127,45 @@ export async function canManageUserAction(
 }
 
 // ============================================
+// VÉRIFIER SI L'UTILISATEUR COURANT PEUT GÉRER PLUSIEURS USERS (BATCH)
+// ============================================
+
+export async function canManageUsersAction(
+  targetUserIds: string[]
+): Promise<Record<string, boolean>> {
+  try {
+    const session = await verifySession();
+
+    await requireAllPermissions(session.user.id, ["members:read","members:update"]);
+
+    const results: Record<string, boolean> = {};
+
+    // Vérifier les permissions pour chaque user
+    await Promise.all(
+      targetUserIds.map(async (targetUserId) => {
+        try {
+          results[targetUserId] = await canManageUser(session.user.id, targetUserId);
+        } catch {
+          results[targetUserId] = false;
+        }
+      })
+    );
+
+    return results;
+  } catch (error) {
+    console.error("Erreur lors de la vérification hiérarchie batch:", error);
+    // Retourner false pour tous les users en cas d'erreur
+    return targetUserIds.reduce((acc, id) => ({ ...acc, [id]: false }), {});
+  }
+}
+
+// ============================================
 // LISTE DES UTILISATEURS (avec filtres & pagination)
 // ============================================
 
 export async function listUsers(
   filters: ListUsersFilters = {}
-): Promise<ListUsersResponse> {
+): Promise<DataResponse<ListUsersResponse>> {
   try {
     const session = await verifySession();
     await can(session.user.id, "members:read");
@@ -158,7 +255,7 @@ export async function listUsers(
       );
     }
 
-    return {
+    const responseData: ListUsersResponse = {
       users: filteredUsers,
       total: typeof total === "number" ? total : Number(total),
       page,
@@ -167,9 +264,14 @@ export async function listUsers(
         (typeof total === "number" ? total : Number(total)) / limit
       ),
     };
+
+    return { success: true, data: responseData };
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs:", error);
-    throw new Error("Impossible de récupérer les utilisateurs");
+    return {
+      success: false,
+      error: "Impossible de récupérer les utilisateurs. Veuillez réessayer.",
+    };
   }
 }
 
@@ -179,23 +281,26 @@ export async function listUsers(
 
 export async function getUserById(
   userId: string
-): Promise<UserWithRoles | null> {
+): Promise<DataResponse<UserWithRoles>> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requirePermission(session.user.id,"members:read");
 
     const userRecord = await db.query.user.findFirst({
       where: eq(user.id, userId),
     });
 
     if (!userRecord) {
-      return null;
+      return {
+        success: false,
+        error: "Utilisateur introuvable.",
+      };
     }
 
     // Utiliser getUserRoles de rbac.ts
     const userRolesList = await getUserRoles(userId);
 
-    return {
+    const userData: UserWithRoles = {
       id: userRecord.id,
       name: userRecord.name,
       email: userRecord.email,
@@ -208,9 +313,14 @@ export async function getUserById(
       createdAt: userRecord.createdAt,
       roles: userRolesList,
     };
+
+    return { success: true, data: userData };
   } catch (error) {
     console.error("Erreur lors de la récupération de l'utilisateur:", error);
-    throw new Error("Impossible de récupérer l'utilisateur");
+    return {
+      success: false,
+      error: "Impossible de récupérer l'utilisateur. Veuillez réessayer.",
+    };
   }
 }
 
@@ -224,7 +334,7 @@ export async function setUserRoles(
 ): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur"]);
+    await requireAllPermissions(session.user.id,["members:read","members:update","members:change_role"]);
 
     // Vérifier que l'utilisateur cible existe
     const targetUser = await db.query.user.findFirst({
@@ -303,7 +413,7 @@ export async function banUser(
 ): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
+    await requireAllPermissions(session.user.id,["members:read","members:update","members:ban"]);
 
     // Vérifier que l'utilisateur cible existe
     const targetUser = await db.query.user.findFirst({
@@ -359,7 +469,7 @@ export async function banUser(
 export async function unbanUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur", "Bureau", "CA"]);
+    await requireAllPermissions(session.user.id,["members:read","members:update","members:ban"]);
 
     // Vérifier que l'utilisateur cible existe
     const targetUser = await db.query.user.findFirst({
@@ -413,7 +523,7 @@ export async function unbanUser(userId: string): Promise<ActionResponse> {
 export async function acceptUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau","CA"]);
+    await requireAllPermissions(session.user.id,["members:read","members:update","members:delete"]);
 
     // Vérifier que l'utilisateur existe et est en attente
     const targetUser = await db.query.user.findFirst({
@@ -488,7 +598,7 @@ export async function acceptUser(userId: string): Promise<ActionResponse> {
 export async function rejectUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau","CA"]);
+    await requireAllPermissions(session.user.id,["members:read","members:update","members:delete"]);
 
     // Vérifier que l'utilisateur existe et est en attente
     const targetUser = await db.query.user.findFirst({
@@ -538,7 +648,7 @@ export async function rejectUser(userId: string): Promise<ActionResponse> {
 export async function deleteUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau","CA"]);
+    await requireAllPermissions(session.user.id,["members:read","members:update","members:delete"]);
 
     // Ne pas autoriser la suppression de son propre compte
     if (userId === session.user.id) {
@@ -594,7 +704,7 @@ export async function resetUserPassword(
 ): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAnyRole(session.user.id, ["Admin", "Moderateur","Bureau","CA"]);
+    await requireAllPermissions(session.user.id,["members:read","members:update"]);
 
     // Récupérer l'utilisateur
     const targetUser = await db.query.user.findFirst({
