@@ -7,27 +7,22 @@ import { z } from "zod";
  */
 export const CreateMemberSchema = z.object({
   email: z
-    .string({ required_error: "L'email est requis" })
-    .min(1, "L'email est requis")
     .email("Email invalide")
     .toLowerCase()
     .trim(),
 
   name: z
-    .string({ required_error: "Le nom est requis" })
+    .string()
     .min(2, "Le nom doit contenir au moins 2 caractères")
     .max(100, "Le nom ne peut pas dépasser 100 caractères")
     .trim(),
 
   roleId: z
-    .string({ required_error: "Le rôle est requis" })
+    .string()
     .min(1, "Veuillez sélectionner un rôle"),
 
   status: z
-    .enum(["active", "pending"], {
-      required_error: "Le statut est requis",
-      invalid_type_error: "Statut invalide",
-    })
+    .enum(["active", "pending"])
     .default("active"),
 });
 
@@ -35,4 +30,4 @@ export const CreateMemberSchema = z.object({
  * Type inféré depuis le schema Zod
  * Utilisé pour typer les données du formulaire
  */
-export type CreateMemberFormData = z.infer<typeof CreateMemberSchema>;
+export type CreateMemberFormData = z.input<typeof CreateMemberSchema>;

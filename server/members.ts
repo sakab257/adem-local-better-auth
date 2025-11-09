@@ -26,7 +26,7 @@ import {
   DataResponse,
   CreateMemberInput,
 } from "@/lib/types";
-import { CreateMemberSchema } from "@/lib/validations/member";
+import { CreateMemberFormData, CreateMemberSchema } from "@/lib/validations/member";
 import { generateSecurePassword } from "@/lib/utils";
 import { sendWelcomeEmail } from "@/lib/email";
 

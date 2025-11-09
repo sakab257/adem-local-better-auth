@@ -154,7 +154,7 @@ export async function sendWelcomeEmail(
 
   return sendEmail(
     email,
-    "Bienvenue dans ADEM",
+    "Bienvenue à l'ADEM",
     html
   );
 }

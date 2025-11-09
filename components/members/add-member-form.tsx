@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { createMember } from "@/server/members";
 import { CreateMemberSchema, CreateMemberFormData } from "@/lib/validations/member";
+import { CreateMemberInput } from "@/lib/types";
 
 interface AddMemberFormProps {
   availableRoles: Array<{
@@ -65,7 +66,9 @@ export function AddMemberForm({ availableRoles }: AddMemberFormProps) {
     setIsSubmitting(true);
 
     try {
-      const result = await createMember(data);
+      const input: CreateMemberInput = CreateMemberSchema.parse(data);
+
+      const result = await createMember(input);
 
       if (result.success) {
         toast.success("Membre créé avec succès");
@@ -103,7 +106,7 @@ export function AddMemberForm({ availableRoles }: AddMemberFormProps) {
             <Input
               id="email"
               type="email"
-              placeholder="exemple@email.com"
+              placeholder="prenom.nom@dauphine.eu"
               {...register("email")}
               disabled={isSubmitting}
             />
@@ -123,7 +126,7 @@ export function AddMemberForm({ availableRoles }: AddMemberFormProps) {
             <Input
               id="name"
               type="text"
-              placeholder="John Doe"
+              placeholder="Prénom NOM"
               {...register("name")}
               disabled={isSubmitting}
             />
