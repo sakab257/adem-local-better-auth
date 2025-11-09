@@ -16,7 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createRole, type Permission } from "@/server/roles";
+import { createRole } from "@/server/roles";
+import { Permission } from "@/lib/types";
 
 // Schema de validation
 const createRoleSchema = z.object({

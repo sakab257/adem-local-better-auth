@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth } from './lib/auth'
-import { isAdmin, isModerator, isBureauOrCA, can } from './lib/rbac'
+import { auth } from '@/lib/auth'
+import { can, canAll } from '@/lib/rbac'
 
 // Définir les routes publiques et d'authentification
 const authRoutes = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password', '/auth/reset-password']
@@ -24,28 +24,28 @@ export async function proxy(request: NextRequest) {
     // Vérifier si c'est la route /pending
     const isPendingRoute = pathname === pendingRoute
 
-    // Par défaut, toutes les routes sont protégées sauf auth, pending et public
+    // Par défaut, toutes les routes sont protégées sauf auth et pending
     const isProtectedRoute = !isAuthRoute && !isPendingRoute
 
     // Rediriger les utilisateurs non connectés des routes protégées
     if (isProtectedRoute && !session?.user) {
         const signInUrl = new URL('/auth/sign-in', request.url)
-        // Ajouter l'URL de retour pour rediriger après connexion
-        signInUrl.searchParams.set('callbackUrl', pathname)
         return NextResponse.redirect(signInUrl)
     }
 
-    // ⚠️ SÉCURITÉ : Vérifier que l'email est vérifié
+    // ============================================
+    // SÉCURITÉ : Vérifier que l'email est vérifié
     // Si l'utilisateur est connecté MAIS email non vérifié, bloquer l'accès
+    // ============================================
     if (isProtectedRoute && session?.user && !session.user.emailVerified) {
         const signInUrl = new URL('/auth/sign-in', request.url)
-        signInUrl.searchParams.set('error', 'email-not-verified')
-        signInUrl.searchParams.set('message', 'Veuillez vérifier votre adresse email pour continuer')
         return NextResponse.redirect(signInUrl)
     }
 
-    // ⚠️ SÉCURITÉ : Rediriger les utilisateurs avec status 'pending' vers /pending
+    // ============================================
+    // SÉCURITÉ : Rediriger les utilisateurs avec status 'pending' vers /pending
     // Sauf s'ils sont déjà sur la page /pending ou sur les routes d'auth
+    // ============================================
     if (isProtectedRoute && session?.user && session.user.emailVerified) {
         // Récupérer le statut de l'utilisateur depuis la DB
         const { db } = await import('./db/drizzle')
@@ -60,14 +60,14 @@ export async function proxy(request: NextRequest) {
             return NextResponse.redirect(new URL(pendingRoute, request.url))
         }
     }
-
+    
     // Rediriger les utilisateurs connectés (avec email vérifié et status != pending) hors des pages d'auth
     if (isAuthRoute && session?.user && session.user.emailVerified) {
         return NextResponse.redirect(new URL('/', request.url))
     }
 
     // ============================================
-    // 🔐 PROTECTION RBAC - Routes par rôle
+    // PROTECTION RBAC - Routes par rôle
     // ============================================
 
     // Protection /roles/** - Réservé aux Admins et Modérateurs et autres...
@@ -82,6 +82,15 @@ export async function proxy(request: NextRequest) {
     // Protection /membres/** - Réservé à l'Admin, Moderateurs, Bureau et CA et autres...
     if (pathname.startsWith('/members') && session?.user) {
         const canSeeMembers = await can(session.user.id,"members:read");
+
+        if (!canSeeMembers) {
+            return NextResponse.redirect(new URL('/', request.url))
+        }
+    }
+
+    // Protection /invitations/** - Réservé à l'Admin, Moderateurs, Bureau et CA et autres...
+    if (pathname.startsWith('/invitations') && session?.user) {
+        const canSeeMembers = await canAll(session.user.id, ["members:read","members:invite"]);
 
         if (!canSeeMembers) {
             return NextResponse.redirect(new URL('/', request.url))

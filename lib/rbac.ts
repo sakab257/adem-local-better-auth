@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { db } from "@/db/drizzle";
 import { user, roles, permissions, userRoles, rolePermissions } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -28,7 +28,7 @@ export type RoleName =
   | "Correcteur"
   | "Membre";
 
-export type UserWithRoles = {
+export type UserWithRolesAndPermissions = {
   id: string;
   name: string;
   email: string;
@@ -100,7 +100,7 @@ export const getUserPermissions = cache(async (userId: string) => {
  * Utile pour les server actions qui ont besoin du contexte complet
  */
 export const getUserWithRoles = cache(
-  async (userId: string): Promise<UserWithRoles | null> => {
+  async (userId: string): Promise<UserWithRolesAndPermissions | null> => {
     const userRecord = await db.query.user.findFirst({
       where: eq(user.id, userId),
     });

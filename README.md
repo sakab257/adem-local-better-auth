@@ -17,9 +17,9 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 | **Organisation code** | 7/10 | ⚠️ Modulaire, composants trop volumineux (472 lignes) |
 | **Réutilisabilité** | 6/10 | ⚠️ Code dupliqué, hooks manquants |
 | **Performance** | 7/10 | ✅ Cache utilisé, ⚠️ pas de pagination, fetch dans useEffect |
-| **Testabilité** | 3/10 | ❌ Aucun test unitaire |
-| **Accessibilité** | 5/10 | ⚠️ Base shadcn bonne, ARIA insuffisant |
-| **Documentation** | 6/10 | ⚠️ Commentaires présents, JSDoc manquant |
+| **Testabilité** | 3/10 | ❌ Aucun test unitaire | (pas prioriataire, j'effectue les tests moi-meme)
+| **Accessibilité** | 5/10 | ⚠️ Base shadcn bonne, ARIA insuffisant | (ARIA à implémenter plus tard voir jamais...)
+| **Documentation** | 6/10 | ⚠️ Commentaires présents, JSDoc manquant | (le README et les commentaires seront suffisants pour la doc)
 
 ---
 
@@ -118,7 +118,7 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 - ✅ **Gestion d'erreurs robuste** : Affichage `<Alert>` si erreur de chargement
 
 ### Sécurité
-- ✅ Middleware de protection routes (redirect si non connecté)
+- ✅ Middleware de protection routes (redirect si non connecté avec proxy.ts)
 - ✅ Blocage si email non vérifié
 - ✅ Redirection users status='pending' vers `/pending` (page d'attente)
 - ✅ Data Access Layer (`verifySession()`) pour server actions
@@ -155,27 +155,20 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 
 ### 🔴 Violations Critiques (P0 - Immédiat)
 
-1. **❌ Nomenclature fichiers** : `dal.ts`, `dto.ts` pas en kebab-case → Renommer en `session.ts`, `data-sanitizers.ts`
-2. **❌ Usage `can()` au lieu de `requirePermission()`** dans `/server/members.ts` ligne 171 (listUsers) → Remplacer par `requirePermission()`
-3. **❌ Composant `members-grid.tsx` trop volumineux** (472 lignes) → Découper en hooks + sous-composants
-4. **❌ Duplication type `UserWithRoles`** entre `rbac.ts` et `types.ts` → Supprimer de rbac.ts, importer depuis types.ts
-5. **❌ Pas de middleware** pour protection routes → Créer `/middleware.ts`
+1. **❌ Composant `members-grid.tsx` trop volumineux** (472 lignes) → Découper en hooks + sous-composants
 
 ### 🟠 Violations Importantes (P1 - Urgent)
 
-6. **❌ Pas de rate limiting** sur server actions sensibles → Implémenter `@upstash/ratelimit`
-7. **❌ Permissions incohérentes** : `getAllRoles()` vs `getUserById()` → Uniformiser (lecture: 1 permission, écriture: multiple)
-8. **❌ Pas de transactions DB** dans `deleteRole()` → Ajouter `db.transaction()`
-9. **❌ Data fetching dans useEffect** (`change-role-dialog.tsx`) → Passer data en props depuis page serveur
-10. **❌ Pagination hardcodée** (limit: 50) → Implémenter pagination avec searchParams
+2. **❌ Permissions incohérentes** : `getAllRoles()` vs `getUserById()` → Uniformiser (lecture: 1 permission, écriture: multiple)
+3. **❌ Pas de transactions DB** dans `deleteRole()` → Ajouter `db.transaction()`
+4. **❌ Data fetching dans useEffect** (`change-role-dialog.tsx`) → Passer data en props depuis page serveur
+5. **❌ Pagination hardcodée** (limit: 50) → Implémenter pagination avec searchParams
 
 ### 🟡 Améliorations Recommandées (P2 - Souhaitable)
 
-11. **❌ Pas de tests unitaires** → Ajouter Jest + React Testing Library
-12. **❌ Accessibilité insuffisante** → Ajouter ARIA labels sur boutons d'action
-13. **❌ Pas de metadata dynamique** → Utiliser `generateMetadata` dans pages `[id]`
-14. **❌ Gestion d'erreurs partielle** → Gérer erreurs individuellement par tab au lieu de tout-ou-rien
-15. **❌ Code dupliqué** (logique réassignation rôle "Membre") → Extraire dans `/lib/rbac-utils.ts`
+6. **❌ Pas de metadata dynamique** → Utiliser `generateMetadata` dans pages `[id]`
+7. **❌ Gestion d'erreurs partielle** → Gérer erreurs individuellement par tab au lieu de tout-ou-rien
+8. **❌ Code dupliqué** (logique réassignation rôle "Membre") → Extraire dans `/lib/rbac-utils.ts`
 
 ### Fonctionnalités Manquantes
 
@@ -270,54 +263,27 @@ export async function requirePermission(userId: string, permission: string): Pro
 
 ### 🔴 Phase 1 : Correctifs Critiques (1-2 jours)
 
-**Objectif** : Corriger les violations critiques des conventions
+**Objectif** : Corriger les violations critiques
 
-1. **Renommer fichiers non-conformes**:
-   ```bash
-   mv lib/dal.ts lib/session.ts
-   mv lib/dto.ts lib/data-sanitizers.ts
-   ```
-
-2. **Fixer duplication `UserWithRoles`**:
-   - Supprimer définition dans `/lib/rbac.ts`
-   - Importer depuis `/lib/types.ts`
-
-3. **Remplacer `can()` par `requirePermission()`** dans listUsers (`/server/members.ts:171`)
-
-4. **Créer `/middleware.ts`** pour protection routes:
-   ```typescript
-   export async function middleware(request: NextRequest) {
-     const session = await auth.api.getSession({ headers: request.headers });
-
-     if (request.nextUrl.pathname.startsWith('/roles')) {
-       if (!session?.user) return NextResponse.redirect('/auth/sign-in');
-       const canAccess = await can(session.user.id, 'roles:read');
-       if (!canAccess) return NextResponse.redirect('/unauthorized');
-     }
-
-     return NextResponse.next();
-   }
-   ```
+1. **Découper `members-grid.tsx`** (472 lignes → ~250 lignes):
+   - Créer hooks: `use-members-filter.ts`, `use-members-actions.ts`
+   - Créer composants: `member-card.tsx`, `members-search-bar.tsx`
+   - Créer dossier: `components/members/dialogs/`
 
 ### 🟠 Phase 2 : Refactoring Important (3-5 jours)
 
 **Objectif** : Améliorer la maintenabilité et performance
 
-5. **Découper `members-grid.tsx`** (472 lignes → ~250 lignes):
-   - Créer hooks: `use-members-filter.ts`, `use-members-actions.ts`
-   - Créer composants: `member-card.tsx`, `members-search-bar.tsx`
-   - Créer dossier: `components/members/dialogs/`
-
-6. **Uniformiser permissions**:
+2. **Uniformiser permissions**:
    - Lecture: 1 permission (`members:read`)
    - Écriture: Multiple permissions (`requireAllPermissions([...])`)
 
-7. **Ajouter transactions DB**:
+3. **Ajouter transactions DB**:
    ```typescript
    await db.transaction(async (tx) => { ... });
    ```
 
-8. **Extraire logique dupliquée**:
+4. **Extraire logique dupliquée**:
    ```typescript
    // /lib/rbac-utils.ts
    export async function ensureUserHasRole(userId: string, assignedBy: string) { ... }
@@ -327,26 +293,21 @@ export async function requirePermission(userId: string, permission: string): Pro
 
 **Objectif** : Solidifier la qualité et l'UX
 
-9. **Ajouter rate limiting** avec `@upstash/ratelimit`
-
-10. **Passer data en props** au lieu de fetch dans useEffect:
+5. **Passer data en props** au lieu de fetch dans useEffect:
     ```typescript
     // Page serveur
     const rolesResult = await getManageableRoles();
     <ChangeRoleDialog availableRoles={rolesResult.data} />
     ```
 
-11. **Implémenter pagination**:
+6. **Implémenter pagination**:
     - Backend: déjà prêt dans `listUsers`
     - Frontend: composant `<Pagination>` + searchParams
 
-12. **Ajouter error boundaries**:
+7. **Ajouter error boundaries**:
     - `app/error.tsx`
     - `app/(application)/error.tsx`
 
-13. **Ajouter tests unitaires** (Jest + RTL)
-
-14. **Améliorer a11y**: ARIA labels, keyboard navigation
 
 ### 📝 Phase 4 : Nouvelles Fonctionnalités (Variable)
 
@@ -397,12 +358,7 @@ pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 
 #### Axes d'amélioration ⚠️
 - ⚠️ Découper composants volumineux (members-grid.tsx: 472 lignes)
-- ⚠️ Ajouter tests unitaires (0 tests actuellement)
-- ⚠️ Implémenter rate limiting
 - ⚠️ Uniformiser vérifications permissions
-- ⚠️ Ajouter middleware pour protection routes
-- ⚠️ Améliorer accessibilité (ARIA labels)
-- ⚠️ Documenter composants complexes (JSDoc)
 
 ---
 

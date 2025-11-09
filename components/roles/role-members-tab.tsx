@@ -18,7 +18,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { removeUserFromRole, type RoleMember } from "@/server/roles";
+import { removeUserFromRole } from "@/server/roles";
+import { RoleMember } from "@/lib/types";
 
 interface RoleMembersTabProps {
   roleId: string;

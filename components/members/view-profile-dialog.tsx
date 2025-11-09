@@ -38,15 +38,15 @@ export function ViewProfileDialog({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-validate/30 text-validate border-validate/50";
+        return "bg-validate/10 text-validate border-validate/50";
       case "pending":
-        return "bg-warning/30 text-warning border-warning/50";
+        return "bg-warning/10 text-warning border-warning/50";
       case "suspended":
-        return "bg-destructive/30 text-destructive border-destructive/50";
+        return "bg-destructive/10 text-destructive border-destructive/50";
       case "banned":
-        return "bg-destructive/30 text-destructive border-destructive/50";
+        return "bg-destructive/10 text-destructive border-destructive/50";
       default:
-        return "bg-muted/30 text-muted border-muted/50";
+        return "bg-muted/10 text-muted border-muted/50";
     }
   };
 

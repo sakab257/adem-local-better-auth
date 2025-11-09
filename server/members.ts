@@ -168,7 +168,7 @@ export async function listUsers(
 ): Promise<DataResponse<ListUsersResponse>> {
   try {
     const session = await verifySession();
-    await can(session.user.id, "members:read");
+    await requirePermission(session.user.id, "members:read");
 
     const {
       search,

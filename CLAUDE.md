@@ -77,7 +77,7 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
 
 **Problèmes d'architecture à corriger AVANT toute nouvelle fonctionnalité :**
 
-1. **❌ Usage `can()` au lieu de `requirePermission()`** dans `/server/members.ts:171`
+1. **✅ Usage `can()` au lieu de `requirePermission()`** dans `/server/members.ts:171`
    - **Problème** : `can()` retourne boolean, ne throw pas → données exposées si pas autorisé
    - **Action** : Remplacer par `requirePermission()` dans `listUsers()`
 
@@ -85,7 +85,7 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
    - **Problème** : Logique métier mélangée avec UI, difficile à maintenir
    - **Action** : Découper en hooks (`use-members-filter.ts`, `use-members-actions.ts`) + sous-composants
 
-3. **❌ Duplication type `UserWithRoles`**
+3. **✅ Duplication type `UserWithRoles`**
    - **Problème** : Défini différemment dans `rbac.ts` ET `types.ts`
    - **Action** : Supprimer de `rbac.ts`, importer depuis `types.ts`
 
@@ -264,7 +264,41 @@ export async function verifySession(): Promise<{ user: { id: string } }> {
 
 ### ✅ Phase 1-4 : RBAC + Membres + Rôles + Invitations + Hiérarchie + Gestion d'erreurs (COMPLÉTÉ MAIS A REFACTORISER POUR CERTAINS TRUCS)
 
-### Phase 5 : Page `/add` (P0 - 1 jour)
+### Phase 5 : Ce qui est dans **Ce qui Manque & Points d'Amélioration**  
+**Objectif** : Implémenter tout ce qui est dans les choses qui manquent (P0, P1 et P2) en m'expliquant bien les concepts
+
+1.**Composant `members-grid.tsx` trop volumineux** (472 lignes)
+   - **Problème** : Logique métier mélangée avec UI, difficile à maintenir
+   - **Action** : Découper en hooks (`use-members-filter.ts`, `use-members-actions.ts`) + sous-composants
+
+2.**Permissions incohérentes**
+   - **Problème** : `getAllRoles()` demande 2 permissions, `getUserById()` 1 seule
+   - **Action** : Uniformiser (lecture: 1 permission, écriture: multiple)
+
+3.**Pas de transactions DB** dans `deleteRole()`
+   - **Problème** : Opérations multiples non atomiques, risque d'incohérence
+   - **Action** : Utiliser `db.transaction()`
+
+4.**Data fetching dans useEffect** (`change-role-dialog.tsx`)
+   - **Problème** : Waterfall requests, pas de SSR, flash de "Chargement..."
+   - **Action** : Passer data en props depuis page serveur
+
+5.**Pagination hardcodée** (limit: 50)
+    - **Problème** : Performance dégradée si > 50 membres
+    - **Action** : Implémenter pagination avec searchParams
+
+6.**Pas de metadata dynamique**
+    - **Action** : Utiliser `generateMetadata` dans pages `[id]`
+
+7.**Gestion d'erreurs partielle**
+    - **Problème** : Si 1 requête échoue, toute la page est en erreur
+    - **Action** : Gérer erreurs individuellement par tab
+
+9.**Code dupliqué** (logique réassignation rôle "Membre")
+    - **Action** : Extraire dans `/lib/rbac-utils.ts`
+
+
+### Phase 6 : Page `/add` (P0 - 1 jour)
 **Objectif** : Création membre unique avec envoi email
 
 1. **Form d'ajout membre** :
@@ -323,7 +357,7 @@ export async function verifySession(): Promise<{ user: { id: string } }> {
 
 3. **Template email** : `emails/welcome.tsx` (React Email)
 
-### Phase 6 : Éditeur Tiptap + Workflow Validation (P1 - 5-7 jours)
+### Phase 7 : Éditeur Tiptap + Workflow Validation (P1 - 5-7 jours)
 **Objectif** : MVP ressources (Cours)
 
 1. **Tables DB** :
@@ -343,7 +377,7 @@ export async function verifySession(): Promise<{ user: { id: string } }> {
    - Page `/resources/validate` : Liste chapters pending
    - Actions : Approuver/Rejeter avec commentaire
 
-### Phase 7 : Dashboard & Calendrier (P2 - 3-4 jours)
+### Phase 8 : Dashboard & Calendrier (P2 - 3-4 jours)
 **Objectif** : Page d'accueil + événements
 
 1. **Dashboard `/`** :
