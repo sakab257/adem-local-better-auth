@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { render } from "@react-email/components";
 import EmailVerification from "@/emails/email-verification";
 import PasswordReset from "@/emails/password-reset";
+import WelcomeEmail from "@/emails/welcome";
 import { toast } from "sonner";
 
 /**
@@ -129,6 +130,31 @@ export async function sendPasswordResetEmail(
   return sendEmail(
     email,
     "Réinitialisez votre mot de passe",
+    html
+  );
+}
+
+/**
+ * Envoyer un email de bienvenue avec lien de reset password
+ */
+export async function sendWelcomeEmail(
+  email: string,
+  userName: string,
+  roleName: string,
+  resetPasswordUrl: string
+) {
+  const html = await render(
+    WelcomeEmail({
+      userName,
+      userEmail: email,
+      roleName,
+      resetPasswordUrl,
+    })
+  );
+
+  return sendEmail(
+    email,
+    "Bienvenue dans ADEM",
     html
   );
 }

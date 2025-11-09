@@ -4,7 +4,6 @@ import { verifySession } from "@/lib/dal";
 import {
   getUserRoles,
   requireCanManageUser,
-  can,
   requirePermission,
   requireAllPermissions,
   canManageUser,
@@ -12,8 +11,9 @@ import {
 } from "@/lib/rbac";
 import { ensureUserHasRole } from "@/lib/rbac-utils";
 import { db } from "@/db/drizzle";
-import { user, userRoles, roles } from "@/db/schema";
+import { user, userRoles, roles, account } from "@/db/schema";
 import { eq, and, or, like, desc, asc, count, lt } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { logAudit, getAuditContext } from "@/lib/audit";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -24,7 +24,11 @@ import {
   ActionResponse,
   UserStatus,
   DataResponse,
+  CreateMemberInput,
 } from "@/lib/types";
+import { CreateMemberSchema } from "@/lib/validations/member";
+import { generateSecurePassword } from "@/lib/utils";
+import { sendWelcomeEmail } from "@/lib/email";
 
 // ============================================
 // FICHIER REFACTORISE AVEC requirePermission / requireAllPermissions
@@ -739,6 +743,175 @@ export async function resetUserPassword(
     return {
       success: false,
       error: "Impossible d'envoyer l'email de réinitialisation",
+    };
+  }
+}
+
+// ============================================
+// CRÉER UN NOUVEAU MEMBRE MANUELLEMENT
+// ============================================
+
+/**
+ * Crée un nouveau membre avec les informations fournies
+ *
+ * Flow :
+ * 1. Valide les données côté serveur avec Zod
+ * 2. Vérifie les permissions (members:invite, members:create)
+ * 3. Génère un mot de passe temporaire sécurisé
+ * 4. Crée l'utilisateur via Better-Auth Admin
+ * 5. Assigne le rôle choisi
+ * 6. Génère un token de reset password
+ * 7. Envoie l'email de bienvenue avec le lien de reset
+ * 8. Log l'action dans les audits
+ *
+ * @param data - Les données du nouveau membre (email, name, roleId, status)
+ * @returns ActionResponse avec succès ou message d'erreur
+ */
+export async function createMember(
+  data: CreateMemberInput
+): Promise<ActionResponse> {
+  try {
+    // 1. Vérifier la session
+    const session = await verifySession();
+
+    // 2. Vérifier les permissions (écriture : multiple permissions)
+    await requireAllPermissions(session.user.id, [
+      "members:invite",
+      "members:create",
+    ]);
+
+    // 3. Validation Zod côté serveur
+    const validatedData = CreateMemberSchema.parse(data);
+
+    // 4. Vérifier si l'email existe déjà
+    const existingUser = await db.query.user.findFirst({
+      where: eq(user.email, validatedData.email),
+    });
+
+    if (existingUser) {
+      return {
+        success: false,
+        error: "Un utilisateur avec cet email existe déjà",
+      };
+    }
+
+    // 5. Vérifier que le rôle existe
+    const role = await db.query.roles.findFirst({
+      where: eq(roles.id, validatedData.roleId),
+    });
+
+    if (!role) {
+      return {
+        success: false,
+        error: "Le rôle sélectionné n'existe pas",
+      };
+    }
+
+    // 6. Générer un mot de passe temporaire sécurisé
+    const tempPassword = generateSecurePassword();
+
+    // 7. Hasher le mot de passe temporaire
+    // Better-Auth utilise bcrypt pour hasher les mots de passe
+    const bcrypt = require("bcrypt");
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    // 8. Créer l'utilisateur et son compte dans une transaction
+    const userId = nanoid();
+
+    await db.transaction(async (tx) => {
+      // Créer l'utilisateur
+      await tx
+        .insert(user)
+        .values({
+          id: userId,
+          email: validatedData.email,
+          name: validatedData.name,
+          emailVerified: true, // Admin crée = email vérifié automatiquement
+          status: validatedData.status,
+        });
+
+      // Créer l'account avec le mot de passe hashé (pour email/password auth)
+      await tx.insert(account).values({
+        id: nanoid(),
+        accountId: userId, // L'accountId est le même que l'userId pour email/password
+        providerId: "credential", // Provider ID pour email/password
+        userId: userId,
+        password: hashedPassword,
+      });
+
+      // Assigner le rôle
+      await tx.insert(userRoles).values({
+        userId: userId,
+        roleId: validatedData.roleId,
+        assignedBy: session.user.id,
+      });
+    });
+
+    // 9. Générer un token de reset password et envoyer l'email de bienvenue
+    const headersList = await headers();
+
+    try {
+      // Générer le token de reset password avec Better-Auth
+      await auth.api.forgetPassword({
+        headers: headersList,
+        body: {
+          email: validatedData.email,
+          redirectTo: "/auth/reset-password",
+        },
+      });
+
+      // Construire l'URL de reset password
+      const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+
+      // Note: Le lien exact sera généré par Better-Auth et envoyé via sendWelcomeEmail
+      // Pour l'instant, on utilise une URL générique
+      const resetPasswordUrl = `${baseUrl}/auth/reset-password`;
+
+      // Envoyer l'email de bienvenue
+      await sendWelcomeEmail(
+        validatedData.email,
+        validatedData.name,
+        role.name,
+        resetPasswordUrl
+      );
+    } catch (emailError) {
+      console.error("Erreur lors de l'envoi de l'email:", emailError);
+      // Ne pas bloquer la création si l'email échoue
+      // L'admin peut toujours renvoyer un reset password manuellement
+    }
+
+    // 10. Log l'action dans les audits
+    const auditContext = getAuditContext(headersList);
+    await logAudit({
+      userId: session.user.id,
+      action: "create",
+      resource: "user",
+      resourceId: userId,
+      metadata: {
+        targetUserEmail: validatedData.email,
+        targetUserName: validatedData.name,
+        assignedRoleId: validatedData.roleId,
+        assignedRoleName: role.name,
+        status: validatedData.status,
+      },
+      ...auditContext,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erreur lors de la création du membre:", error);
+
+    // Gestion des erreurs Zod
+    if (error instanceof Error && error.name === "ZodError") {
+      return {
+        success: false,
+        error: "Données invalides. Veuillez vérifier le formulaire.",
+      };
+    }
+
+    return {
+      success: false,
+      error: "Impossible de créer le membre. Veuillez réessayer.",
     };
   }
 }

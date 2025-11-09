@@ -130,7 +130,16 @@ export interface WhitelistEntry {
   createdAt: Date;
 }
 
+// ============================================
+// TYPES CRÉATION MEMBRE
+// ============================================
 
+export interface CreateMemberInput {
+  email: string;
+  name: string;
+  roleId: string;
+  status: "active" | "pending";
+}
 
 // ============================================
 // TYPES ROLES
