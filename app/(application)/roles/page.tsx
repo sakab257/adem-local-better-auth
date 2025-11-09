@@ -1,13 +1,17 @@
 import { verifySession } from "@/lib/dal";
-import { can, isAdmin, isModerator, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { listRoles, countRoleMembers } from "@/server/roles";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+export const metadata = {
+  title: "Tous les rôles - ADEM",
+  description: "Gérer tous les rôles et leurs permissions",
+};
 
 export default async function RolesPage() {
   // Vérifier la session et les permissions

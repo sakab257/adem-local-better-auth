@@ -213,7 +213,7 @@ export function RoleGeneralTab({ role, memberCount }: RoleGeneralTabProps) {
               <AlertDialogCancel>Annuler</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className="bg-destructive text-primary-foreground hover:bg-destructive/60"
               >
                 {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Oui, supprimer le rôle

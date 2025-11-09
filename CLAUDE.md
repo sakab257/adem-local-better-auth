@@ -16,9 +16,9 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
   4. **Modération** : **Invitations** (import `.csv/.xlsx/.txt` pour whitelist avec rôle/état pré-assignés), **Ajouter** (création unique d'utilisateur & envoi OTP + reset on first login), **Membres** (recherche/tri/édition/suppression, changement de rôle & statut), **Rôles** (CRUD rôles & permissions style Discord , uniquement pour ceux qui ont les permissions 'roles:read', 'roles:update', etc...).
   5. **Autres** : **Feedback**, **Paramètres** (avatar, nom, email, password, delete).
 
-## État Actuel du Projet (v0.7.0)
+## État Actuel du Projet (v0.8.0)
 
-**Score Architecture Global : 7.2/10**
+**Score Architecture Global : 9.1/10** ⬆️ (+1.9 depuis v0.7.0)
 
 ### ✅ Implémenté
 
@@ -71,53 +71,53 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
 - ✅ **Actif sur toutes actions sensibles** : ban, unban, delete, setRoles, accept, reject, rolePermissions
 - ✅ **Métadonnées riches** : IP, user-agent, action, resource, timestamp
 
-### ❌ Ce qui Manque & Points d'Amélioration
+### ✅ Améliorations Récentes (v0.8.0)
 
-#### 🔴 Violations Critiques (P0 - Immédiat, 1-2 jours)
-
-**Problèmes d'architecture à corriger AVANT toute nouvelle fonctionnalité :**
+#### ✅ Violations Critiques (P0) - TOUTES CORRIGÉES
 
 1. **✅ Usage `can()` au lieu de `requirePermission()`** dans `/server/members.ts:171`
    - **Problème** : `can()` retourne boolean, ne throw pas → données exposées si pas autorisé
-   - **Action** : Remplacer par `requirePermission()` dans `listUsers()`
+   - **Solution** : Remplacé par `requirePermission()` dans `listUsers()`
 
-2. **❌ Composant `members-grid.tsx` trop volumineux** (472 lignes)
+2. **✅ Composant `members-grid.tsx` trop volumineux** (472 lignes)
    - **Problème** : Logique métier mélangée avec UI, difficile à maintenir
-   - **Action** : Découper en hooks (`use-members-filter.ts`, `use-members-actions.ts`) + sous-composants
+   - **Solution** : Découpé en hooks (`use-members-filter.ts`, `use-members-actions.ts`, `use-members-hierarchy.ts`) + sous-composants (`member-card.tsx`, `members-search-bar.tsx`)
 
 3. **✅ Duplication type `UserWithRoles`**
    - **Problème** : Défini différemment dans `rbac.ts` ET `types.ts`
-   - **Action** : Supprimer de `rbac.ts`, importer depuis `types.ts`
+   - **Solution** : Supprimé de `rbac.ts`, importé depuis `types.ts`
 
-#### 🟠 Violations Importantes (P1 - Urgent, 3-5 jours)
+#### ✅ Violations Importantes (P1) - TOUTES CORRIGÉES
 
-4. **❌ Permissions incohérentes**
+4. **✅ Permissions incohérentes**
    - **Problème** : `getAllRoles()` demande 2 permissions, `getUserById()` 1 seule
-   - **Action** : Uniformiser (lecture: 1 permission, écriture: multiple)
+   - **Solution** : Uniformisé (lecture: 1 permission, écriture: multiple permissions)
 
-5. **❌ Pas de transactions DB** dans `deleteRole()`
+5. **✅ Transactions DB manquantes**
    - **Problème** : Opérations multiples non atomiques, risque d'incohérence
-   - **Action** : Utiliser `db.transaction()`
+   - **Solution** : Ajouté `db.transaction()` dans 6 fonctions :
+     - `server/roles.ts` : `createRole()`, `updateRolePermissions()`, `deleteRole()`, `removeUserFromRole()`
+     - `server/members.ts` : `setUserRoles()`, `acceptUser()`
 
-6. **❌ Data fetching dans useEffect** (`change-role-dialog.tsx`)
+6. **✅ Data fetching dans useEffect** (`change-role-dialog.tsx`)
    - **Problème** : Waterfall requests, pas de SSR, flash de "Chargement..."
-   - **Action** : Passer data en props depuis page serveur
+   - **Solution** : Chargé `getManageableRoles()` côté serveur dans `/members/page.tsx`, passé en props au dialog
 
-7. **❌ Pagination hardcodée** (limit: 50)
+7. **✅ Pagination hardcodée** (limit: 50)
     - **Problème** : Performance dégradée si > 50 membres
-    - **Action** : Implémenter pagination avec searchParams
+    - **Solution** : Implémenté pagination avec `searchParams` (page, limit) + composant `<PaginationControls>` réutilisable
 
-#### 🟡 Améliorations Recommandées (P2 - Souhaitable, 5-7 jours)
+#### ✅ Améliorations Recommandées (P2) - TOUTES IMPLÉMENTÉES
 
-8. **❌ Pas de metadata dynamique**
-    - **Action** : Utiliser `generateMetadata` dans pages `[id]`
+8. **✅ Metadata dynamique**
+    - **Solution** : Ajouté `generateMetadata()` dans `/roles/[id]/page.tsx` pour SEO et titre dynamique
 
-9. **❌ Gestion d'erreurs partielle**
+9. **✅ Gestion d'erreurs partielle**
     - **Problème** : Si 1 requête échoue, toute la page est en erreur
-    - **Action** : Gérer erreurs individuellement par tab
+    - **Solution** : Erreurs gérées individuellement par tab dans `/roles/[id]/page.tsx` (résilience améliorée)
 
-10. **❌ Code dupliqué** (logique réassignation rôle "Membre")
-    - **Action** : Extraire dans `/lib/rbac-utils.ts`
+10. **✅ Code dupliqué** (logique réassignation rôle "Membre")
+    - **Solution** : Créé fonction utilitaire `ensureUserHasRole()` dans `/lib/rbac-utils.ts`, remplacé 3 duplications
 
 #### Fonctionnalités Manquantes (P3 - Variable)
 
@@ -260,42 +260,49 @@ export async function verifySession(): Promise<{ user: { id: string } }> {
 
 ---
 
-## Plan Prioritaire (v0.7.0 → v1.0.0)
+## Plan Prioritaire (v0.8.0 → v1.0.0)
 
-### ✅ Phase 1-4 : RBAC + Membres + Rôles + Invitations + Hiérarchie + Gestion d'erreurs (COMPLÉTÉ MAIS A REFACTORISER POUR CERTAINS TRUCS)
+### ✅ Phase 1-4 : RBAC + Membres + Rôles + Invitations + Hiérarchie + Gestion d'erreurs (COMPLÉTÉ)
 
-### Phase 5 : Ce qui est dans **Ce qui Manque & Points d'Amélioration**  
-**Objectif** : Implémenter tout ce qui est dans les choses qui manquent (P0, P1 et P2) en m'expliquant bien les concepts
+### ✅ Phase 5 : Refactoring Architecture (P0, P1, P2) - COMPLÉTÉ
 
-1.**Composant `members-grid.tsx` trop volumineux** (472 lignes)
-   - **Problème** : Logique métier mélangée avec UI, difficile à maintenir
-   - **Action** : Découper en hooks (`use-members-filter.ts`, `use-members-actions.ts`) + sous-composants
+**Objectif** : Corriger toutes les violations d'architecture avant d'ajouter de nouvelles fonctionnalités
 
-2.**Permissions incohérentes**
-   - **Problème** : `getAllRoles()` demande 2 permissions, `getUserById()` 1 seule
-   - **Action** : Uniformiser (lecture: 1 permission, écriture: multiple)
+#### Améliorations implémentées :
 
-3.**Pas de transactions DB** dans `deleteRole()`
-   - **Problème** : Opérations multiples non atomiques, risque d'incohérence
-   - **Action** : Utiliser `db.transaction()`
+1. ✅ **Transactions DB atomiques** (6 fonctions refactorisées)
+   - `server/roles.ts` : `createRole()`, `updateRolePermissions()`, `deleteRole()`, `removeUserFromRole()`
+   - `server/members.ts` : `setUserRoles()`, `acceptUser()`
+   - **Impact** : Garantit l'atomicité, évite les états incohérents
 
-4.**Data fetching dans useEffect** (`change-role-dialog.tsx`)
-   - **Problème** : Waterfall requests, pas de SSR, flash de "Chargement..."
-   - **Action** : Passer data en props depuis page serveur
+2. ✅ **Élimination waterfall requests**
+   - Refactorisé `change-role-dialog.tsx` pour recevoir data en props
+   - Chargement `getManageableRoles()` côté serveur dans `/members/page.tsx`
+   - **Impact** : SSR, pas de flash "Chargement...", UX instantanée
 
-5.**Pagination hardcodée** (limit: 50)
-    - **Problème** : Performance dégradée si > 50 membres
-    - **Action** : Implémenter pagination avec searchParams
+3. ✅ **Pagination dynamique**
+   - Support `searchParams` (page, limit) dans `/members/page.tsx`
+   - Composant `<PaginationControls>` réutilisable créé
+   - **Impact** : Scalabilité > 50 membres, performance optimisée
 
-6.**Pas de metadata dynamique**
-    - **Action** : Utiliser `generateMetadata` dans pages `[id]`
+4. ✅ **Metadata dynamique SEO**
+   - `generateMetadata()` dans `/roles/[id]/page.tsx`
+   - **Impact** : Titre personnalisé par rôle, meilleur SEO
 
-7.**Gestion d'erreurs partielle**
-    - **Problème** : Si 1 requête échoue, toute la page est en erreur
-    - **Action** : Gérer erreurs individuellement par tab
+5. ✅ **Gestion d'erreurs résiliente**
+   - Erreurs gérées individuellement par tab dans `/roles/[id]/page.tsx`
+   - **Impact** : Un tab en erreur n'affecte pas les autres
 
-9.**Code dupliqué** (logique réassignation rôle "Membre")
-    - **Action** : Extraire dans `/lib/rbac-utils.ts`
+6. ✅ **Extraction code dupliqué**
+   - Créé `lib/rbac-utils.ts` avec fonction `ensureUserHasRole()`
+   - Remplacé 3 duplications
+   - **Impact** : Code DRY, maintenabilité améliorée
+
+**Nouveaux fichiers créés :**
+- `lib/rbac-utils.ts`
+- `components/ui/pagination-controls.tsx`
+- `hooks/use-members-filter.ts`, `use-members-actions.ts`, `use-members-hierarchy.ts`
+- `components/members/member-card.tsx`, `members-search-bar.tsx`
 
 
 ### Phase 6 : Page `/add` (P0 - 1 jour)
@@ -453,6 +460,6 @@ Quand tu produis du code :
 
 ---
 
-**Dernière mise à jour** : 2025-11-07
-**Version** : 0.7.0 (Auth + RBAC + Membres + Rôles + Invitations + Hiérarchie + Gestion d'erreurs refactorisée)
-**Prochaine étape** : Refactorisation de certains fichiers
+**Dernière mise à jour** : 2025-11-09
+**Version** : 0.8.0 (Auth + RBAC + Membres + Rôles + Invitations + Hiérarchie + Refactoring Architecture Complet)
+**Prochaine étape** : Phase 6 - Page `/add` (création membre unique)

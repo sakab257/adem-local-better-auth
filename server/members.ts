@@ -10,6 +10,7 @@ import {
   canManageUser,
   getUserMaxPriority
 } from "@/lib/rbac";
+import { ensureUserHasRole } from "@/lib/rbac-utils";
 import { db } from "@/db/drizzle";
 import { user, userRoles, roles } from "@/db/schema";
 import { eq, and, or, like, desc, asc, count, lt } from "drizzle-orm";
@@ -38,7 +39,8 @@ type RoleData = { id: string; name: string; color: string | null; priority: numb
 export async function getAllRoles(): Promise<DataResponse<RoleData[]>> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["members:read","members:update"]);
+    // Lecture uniquement : 1 seule permission
+    await requirePermission(session.user.id, "members:read");
 
     const allRoles = await db
       .select({
@@ -79,7 +81,8 @@ export async function getAllRoles(): Promise<DataResponse<RoleData[]>> {
 export async function getManageableRoles(): Promise<DataResponse<RoleData[]>> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["members:read","members:update","members:change_role"]);
+    // Lecture uniquement : 1 seule permission
+    await requirePermission(session.user.id, "members:read");
 
     // Récupérer la priorité maximale de l'utilisateur courant
     const currentUserMaxPriority = await getUserMaxPriority(session.user.id);
@@ -115,8 +118,8 @@ export async function canManageUserAction(
 ): Promise<{ canManage: boolean }> {
   try {
     const session = await verifySession();
-
-    await requireAllPermissions(session.user.id, ["members:read","members:update"]);
+    // Lecture uniquement : 1 seule permission
+    await requirePermission(session.user.id, "members:read");
 
     const result = await canManageUser(session.user.id, targetUserId);
     return { canManage: result };
@@ -135,8 +138,8 @@ export async function canManageUsersAction(
 ): Promise<Record<string, boolean>> {
   try {
     const session = await verifySession();
-
-    await requireAllPermissions(session.user.id, ["members:read","members:update"]);
+    // Lecture uniquement : 1 seule permission
+    await requirePermission(session.user.id, "members:read");
 
     const results: Record<string, boolean> = {};
 
@@ -348,29 +351,33 @@ export async function setUserRoles(
     // Vérifier la hiérarchie (priorité)
     await requireCanManageUser(session.user.id, userId);
 
-    // Récupérer les anciens rôles pour le log
+    // Récupérer les anciens rôles pour le log (avant transaction)
     const oldRoles = await db
       .select({ name: roles.name })
       .from(userRoles)
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(eq(userRoles.userId, userId));
 
-    // Supprimer tous les rôles existants
-    await db.delete(userRoles).where(eq(userRoles.userId, userId));
+    // Transaction atomique : suppression + insertion en une seule opération
+    // Si l'insertion échoue, la suppression est annulée (rollback)
+    await db.transaction(async (tx) => {
+      // 1. Supprimer tous les rôles existants
+      await tx.delete(userRoles).where(eq(userRoles.userId, userId));
 
-    // Ajouter les nouveaux rôles
-    if (roleIds.length > 0) {
-      await db.insert(userRoles).values(
-        roleIds.map((roleId) => ({
-          userId,
-          roleId,
-          assignedBy: session.user.id,
-          assignedAt: new Date(),
-        }))
-      );
-    }
+      // 2. Ajouter les nouveaux rôles
+      if (roleIds.length > 0) {
+        await tx.insert(userRoles).values(
+          roleIds.map((roleId) => ({
+            userId,
+            roleId,
+            assignedBy: session.user.id,
+            assignedAt: new Date(),
+          }))
+        );
+      }
+    });
 
-    // Récupérer les nouveaux rôles pour le log
+    // Récupérer les nouveaux rôles pour le log (après transaction)
     const newRoles = await db
       .select({ name: roles.name })
       .from(userRoles)
@@ -523,7 +530,7 @@ export async function unbanUser(userId: string): Promise<ActionResponse> {
 export async function acceptUser(userId: string): Promise<ActionResponse> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id,["members:read","members:update","members:delete"]);
+    await requireAllPermissions(session.user.id,["members:read","members:update"]);
 
     // Vérifier que l'utilisateur existe et est en attente
     const targetUser = await db.query.user.findFirst({
@@ -541,31 +548,15 @@ export async function acceptUser(userId: string): Promise<ActionResponse> {
     // Vérifier la hiérarchie (priorité)
     await requireCanManageUser(session.user.id, userId);
 
-    // Passer le statut à "active"
-    await db.update(user).set({ status: "active" }).where(eq(user.id, userId));
+    // Transaction atomique : changement de statut + assignation du rôle
+    // Si l'assignation du rôle échoue, le statut reste "pending"
+    await db.transaction(async (tx) => {
+      // 1. Passer le statut à "active"
+      await tx.update(user).set({ status: "active" }).where(eq(user.id, userId));
 
-    // Vérifier si l'utilisateur a déjà un rôle "Membre"
-    const membreRole = await db.query.roles.findFirst({
-      where: eq(roles.name, "Membre"),
+      // 2. S'assurer que l'utilisateur a au moins un rôle (assigne "Membre" si aucun)
+      await ensureUserHasRole(tx, userId, session.user.id);
     });
-
-    if (membreRole) {
-      const existingRole = await db.query.userRoles.findFirst({
-        where: and(
-          eq(userRoles.userId, userId),
-          eq(userRoles.roleId, membreRole.id)
-        ),
-      });
-
-      if (!existingRole) {
-        await db.insert(userRoles).values({
-          userId,
-          roleId: membreRole.id,
-          assignedBy: session.user.id,
-          assignedAt: new Date(),
-        });
-      }
-    }
 
     // Audit log
     const headersList = await headers();

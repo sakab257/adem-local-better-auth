@@ -1,12 +1,16 @@
 import { verifySession } from "@/lib/dal";
-import { can, isAdmin, isModerator, requireAllPermissions, requirePermission } from "@/lib/rbac";
+import { requireAllPermissions } from "@/lib/rbac";
 import { getAllPermissions } from "@/server/roles";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { CreateRoleForm } from "@/components/roles/create-role-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+export const metadata = {
+  title: "Créer un rôle - ADEM",
+  description: "Créer un rôle customisé et gérer ses permissions",
+};
 
 export default async function NewRolePage() {
   // Vérifier la session et les permissions

@@ -1,7 +1,6 @@
 import { verifySession } from "@/lib/dal";
-import { isAdmin, isModerator, requireAllPermissions } from "@/lib/rbac";
+import { requireAllPermissions } from "@/lib/rbac";
 import { getRoleById, getRoleMembers, getAllPermissions, countRoleMembers } from "@/server/roles";
-import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -11,6 +10,11 @@ import { RoleGeneralTab } from "@/components/roles/role-general-tab";
 import { RolePermissionsTab } from "@/components/roles/role-permissions-tab";
 import { RoleMembersTab } from "@/components/roles/role-members-tab";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+export const metadata = {
+  title: "Gestion d'un rôle - ADEM",
+  description: "Gérer le rôle et ses permissions",
+};
 
 interface RolePageProps {
   params: Promise<{
@@ -25,7 +29,7 @@ export default async function RolePage({ params }: RolePageProps) {
   const session = await verifySession();
   await requireAllPermissions(session.user.id, ["roles:read","roles:update"]);
 
-  // Récupérer le rôle avec ses permissions
+  // Récupérer le rôle avec ses permissions (CRITIQUE - bloque toute la page)
   const roleResult = await getRoleById(roleId);
   if (!roleResult.success) {
     return (
@@ -42,50 +46,19 @@ export default async function RolePage({ params }: RolePageProps) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
         <Alert variant="destructive">
-          <AlertDescription>Role sans permission(s) trouvé ! Veuillez réessayer !</AlertDescription>
+          <AlertDescription>Rôle introuvable</AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  // Récupérer les membres du rôle
-  const membersResult = await getRoleMembers(roleId);
-  if (!membersResult.success) {
-    return (
-      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
-        <Alert variant="destructive">
-          <AlertDescription>{membersResult.error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-  const members = membersResult.data!;
-
-  // Récupérer toutes les permissions disponibles
-  const allPermissionsResult = await getAllPermissions();
-  if (!allPermissionsResult.success) {
-    return (
-      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
-        <Alert variant="destructive">
-          <AlertDescription>{allPermissionsResult.error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-  const allPermissions = allPermissionsResult.data!;
-
-  // Compter les membres
-  const memberCountResult = await countRoleMembers(roleId);
-  if (!memberCountResult.success) {
-    return (
-      <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
-        <Alert variant="destructive">
-          <AlertDescription>{memberCountResult.error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-  const memberCount = memberCountResult.data!;
+  // Récupérer les données des autres tabs (NON-CRITIQUE - gérées individuellement)
+  // Si une requête échoue, on continue et on affiche l'erreur dans le tab concerné
+  const [membersResult, allPermissionsResult, memberCountResult] = await Promise.all([
+    getRoleMembers(roleId),
+    getAllPermissions(),
+    countRoleMembers(roleId),
+  ]);
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
@@ -120,14 +93,24 @@ export default async function RolePage({ params }: RolePageProps) {
           <TabsTrigger value="permissions">
             Permissions ({roleWithPermissions.permissions.length})
           </TabsTrigger>
-          <TabsTrigger value="members">Membres ({memberCount})</TabsTrigger>
+          <TabsTrigger value="members">
+            Membres ({memberCountResult.success ? memberCountResult.data : "?"})
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab Général */}
         <TabsContent value="general">
           <Card>
             <CardContent className="pt-6">
-              <RoleGeneralTab role={roleWithPermissions} memberCount={memberCount} />
+              {memberCountResult.success ? (
+                <RoleGeneralTab role={roleWithPermissions} memberCount={memberCountResult.data!} />
+              ) : (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    Impossible de charger le nombre de membres : {memberCountResult.error}
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -136,11 +119,19 @@ export default async function RolePage({ params }: RolePageProps) {
         <TabsContent value="permissions">
           <Card>
             <CardContent className="pt-6">
-              <RolePermissionsTab
-                roleId={roleId}
-                allPermissions={allPermissions}
-                currentPermissions={roleWithPermissions.permissions}
-              />
+              {allPermissionsResult.success ? (
+                <RolePermissionsTab
+                  roleId={roleId}
+                  allPermissions={allPermissionsResult.data!}
+                  currentPermissions={roleWithPermissions.permissions}
+                />
+              ) : (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    Impossible de charger les permissions : {allPermissionsResult.error}
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -149,7 +140,15 @@ export default async function RolePage({ params }: RolePageProps) {
         <TabsContent value="members">
           <Card>
             <CardContent className="pt-6">
-              <RoleMembersTab roleId={roleId} members={members} />
+              {membersResult.success ? (
+                <RoleMembersTab roleId={roleId} members={membersResult.data!} />
+              ) : (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    Impossible de charger les membres : {membersResult.error}
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

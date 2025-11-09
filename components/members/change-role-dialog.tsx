@@ -14,42 +14,42 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { setUserRoles, getManageableRoles } from "@/server/members";
+import { setUserRoles } from "@/server/members";
+
+type AvailableRole = {
+  id: string;
+  name: string;
+  color: string | null;
+  priority: number;
+};
 
 interface ChangeRoleDialogProps {
   user: UserWithRoles;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  availableRoles: AvailableRole[];
 }
 
+/**
+ * Dialog pour modifier les rôles d'un utilisateur
+ *
+ * Les rôles disponibles sont chargés côté serveur et passés en props
+ * pour éviter le waterfall request et améliorer les performances
+ */
 export function ChangeRoleDialog({
   user,
   open,
   onOpenChange,
   onSuccess,
+  availableRoles,
 }: ChangeRoleDialogProps) {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [availableRoles, setAvailableRoles] = useState<
-    Array<{ id: string; name: string; color: string | null; priority: number }>
-  >([]);
   const [loading, setLoading] = useState(false);
 
-  // Charger les rôles disponibles
+  // Initialiser les rôles sélectionnés quand le dialog s'ouvre
   useEffect(() => {
-    async function loadRoles() {
-      const result = await getManageableRoles();
-
-      if (result.success && result.data) {
-        setAvailableRoles(result.data);
-      } else {
-        console.error("Erreur lors du chargement des rôles:", result.error);
-        toast.error(result.error || "Impossible de charger les rôles");
-      }
-    }
-
     if (open) {
-      loadRoles();
       setSelectedRoles(user.roles.map((r) => r.id));
     }
   }, [open, user]);
@@ -87,7 +87,7 @@ export function ChangeRoleDialog({
 
         <div className="space-y-4 py-4">
           {availableRoles.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Chargement...</p>
+            <p className="text-sm text-muted-foreground">Aucun rôle disponible</p>
           ) : (
             availableRoles
               .filter((role) => role.name !== "Admin")

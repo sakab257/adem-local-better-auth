@@ -4,6 +4,7 @@ import { db } from "@/db/drizzle";
 import { roles, permissions, rolePermissions, userRoles, user } from "@/db/schema";
 import { verifySession } from "@/lib/dal";
 import { requireAllPermissions, requirePermission } from "@/lib/rbac";
+import { ensureUserHasRole } from "@/lib/rbac-utils";
 import { logAudit } from "@/lib/audit";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -145,11 +146,15 @@ export async function getAllPermissions(): Promise<DataResponse<Permission[]>> {
 
 /**
  * Crée un nouveau rôle
+ *
+ * Utilise une transaction DB pour garantir l'atomicité :
+ * - Si l'assignation des permissions échoue, le rôle n'est pas créé
+ * - Évite les rôles orphelins sans permissions
  */
 export async function createRole(input: CreateRoleInput): Promise<{ success: boolean; roleId?: string; error?: string }> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update"]);
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:create"]);
 
     // Vérifier que le nom n'existe pas déjà
     const existingRole = await db.query.roles.findFirst({
@@ -162,26 +167,29 @@ export async function createRole(input: CreateRoleInput): Promise<{ success: boo
 
     const roleId = nanoid();
 
-    // Créer le rôle
-    await db.insert(roles).values({
-      id: roleId,
-      name: input.name,
-      description: input.description || null,
-      color: input.color || "#6366f1",
-      priority: input.priority || 0,
+    // Transaction atomique : création du rôle + assignation des permissions
+    await db.transaction(async (tx) => {
+      // 1. Créer le rôle
+      await tx.insert(roles).values({
+        id: roleId,
+        name: input.name,
+        description: input.description || null,
+        color: input.color || "#6366f1",
+        priority: input.priority || 0,
+      });
+
+      // 2. Assigner les permissions si fournies
+      if (input.permissionIds && input.permissionIds.length > 0) {
+        await tx.insert(rolePermissions).values(
+          input.permissionIds.map((permId) => ({
+            roleId,
+            permissionId: permId,
+          }))
+        );
+      }
     });
 
-    // Assigner les permissions si fournies
-    if (input.permissionIds && input.permissionIds.length > 0) {
-      await db.insert(rolePermissions).values(
-        input.permissionIds.map((permId) => ({
-          roleId,
-          permissionId: permId,
-        }))
-      );
-    }
-
-    // Audit log
+    // Audit log (hors transaction car non-critique)
     await logAudit({
       userId: session.user.id,
       action: "create",
@@ -211,7 +219,7 @@ export async function updateRole(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update"]);
+    await requireAllPermissions(session.user.id, ["roles:read","roles:update"]);
 
     // Vérifier que le rôle existe
     const existingRole = await db.query.roles.findFirst({
@@ -262,6 +270,9 @@ export async function updateRole(
 
 /**
  * Met à jour les permissions d'un rôle
+ *
+ * Utilise une transaction DB pour garantir l'atomicité :
+ * - Si l'ajout des nouvelles permissions échoue, les anciennes ne sont pas supprimées
  */
 export async function updateRolePermissions(
   roleId: string,
@@ -269,22 +280,25 @@ export async function updateRolePermissions(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update"]);
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:update"]);
 
-    // Supprimer toutes les permissions actuelles
-    await db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+    // Transaction atomique : suppression + insertion en une seule opération
+    await db.transaction(async (tx) => {
+      // 1. Supprimer toutes les permissions actuelles
+      await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
 
-    // Ajouter les nouvelles permissions
-    if (permissionIds.length > 0) {
-      await db.insert(rolePermissions).values(
-        permissionIds.map((permId) => ({
-          roleId,
-          permissionId: permId,
-        }))
-      );
-    }
+      // 2. Ajouter les nouvelles permissions
+      if (permissionIds.length > 0) {
+        await tx.insert(rolePermissions).values(
+          permissionIds.map((permId) => ({
+            roleId,
+            permissionId: permId,
+          }))
+        );
+      }
+    });
 
-    // Audit log
+    // Audit log (hors transaction car non-critique)
     await logAudit({
       userId: session.user.id,
       action: "update",
@@ -312,7 +326,7 @@ export async function updateRolePermissions(
 export async function countRoleMembers(roleId: string): Promise<DataResponse<number>> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["roles:read", "members:read"]);
+    await requireAllPermissions(session.user.id, ["roles:read"]);
 
     const result = await db
       .select({ count: sql<number>`count(*)` })
@@ -328,11 +342,15 @@ export async function countRoleMembers(roleId: string): Promise<DataResponse<num
 
 /**
  * Supprime un rôle (avec retrait des users + assignation au rôle "Membre")
+ *
+ * Utilise une transaction DB pour garantir l'atomicité :
+ * - Si une opération échoue, toutes les modifications sont annulées (rollback)
+ * - Évite les états incohérents (users sans rôle, rôle partiellement supprimé)
  */
 export async function deleteRole(roleId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update"]);
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:update"]);
 
     // Vérifier que le rôle existe
     const role = await db.query.roles.findFirst({
@@ -349,46 +367,27 @@ export async function deleteRole(roleId: string): Promise<{ success: boolean; er
       return { success: false, error: memberCountResult.error };
     }
 
-    // Récupérer le rôle "Membre" pour réassignation
-    const membreRole = await db.query.roles.findFirst({
-      where: eq(roles.name, "Membre"),
-    });
-
-    if (!membreRole) {
-      return { success: false, error: "Rôle 'Membre' introuvable (requis pour réassignation)" };
-    }
-
     // Récupérer tous les users qui ont ce rôle
     const affectedUsers = await db
       .select({ userId: userRoles.userId })
       .from(userRoles)
       .where(eq(userRoles.roleId, roleId));
 
-    // Supprimer le rôle de tous les users
-    await db.delete(userRoles).where(eq(userRoles.roleId, roleId));
+    // Transaction atomique : toutes les opérations réussissent ou toutes échouent
+    await db.transaction(async (tx) => {
+      // 1. Supprimer le rôle de tous les users
+      await tx.delete(userRoles).where(eq(userRoles.roleId, roleId));
 
-    // Pour chaque user affecté, vérifier s'il a d'autres rôles
-    // Si non, lui assigner le rôle "Membre"
-    for (const { userId } of affectedUsers) {
-      const remainingRoles = await db
-        .select()
-        .from(userRoles)
-        .where(eq(userRoles.userId, userId));
-
-      if (remainingRoles.length === 0) {
-        // Assigner le rôle "Membre"
-        await db.insert(userRoles).values({
-          userId,
-          roleId: membreRole.id,
-          assignedBy: session.user.id,
-        });
+      // 2. Pour chaque user affecté, s'assurer qu'il a au moins un rôle
+      for (const { userId } of affectedUsers) {
+        await ensureUserHasRole(tx, userId, session.user.id);
       }
-    }
 
-    // Supprimer le rôle (cascade delete sur rolePermissions grâce au schema)
-    await db.delete(roles).where(eq(roles.id, roleId));
+      // 3. Supprimer le rôle (cascade delete sur rolePermissions grâce au schema)
+      await tx.delete(roles).where(eq(roles.id, roleId));
+    });
 
-    // Audit log
+    // Audit log (hors transaction car non-critique)
     await logAudit({
       userId: session.user.id,
       action: "delete",
@@ -411,6 +410,10 @@ export async function deleteRole(roleId: string): Promise<{ success: boolean; er
 
 /**
  * Retire un utilisateur d'un rôle (et lui assigne "Membre" si c'était son dernier rôle)
+ *
+ * Utilise une transaction DB pour garantir l'atomicité :
+ * - Si la réassignation du rôle "Membre" échoue, le rôle n'est pas retiré
+ * - Évite qu'un utilisateur se retrouve sans aucun rôle
  */
 export async function removeUserFromRole(
   userId: string,
@@ -418,7 +421,7 @@ export async function removeUserFromRole(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["roles:read", "roles:create", "roles:delete", "roles:update", "members:read"]);
+    await requireAllPermissions(session.user.id, ["roles:read", "roles:delete", "members:read", "members:update"]);
 
     const assignment = await db.query.userRoles.findFirst({
       where: and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)),
@@ -428,35 +431,18 @@ export async function removeUserFromRole(
       return { success: false, error: "Cet utilisateur n'a pas ce rôle" };
     }
 
-    // Supprimer le rôle
-    await db
-      .delete(userRoles)
-      .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)));
+    // Transaction atomique : suppression + réassignation conditionnelle
+    await db.transaction(async (tx) => {
+      // 1. Supprimer le rôle
+      await tx
+        .delete(userRoles)
+        .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)));
 
+      // 2. S'assurer que l'utilisateur a au moins un rôle
+      await ensureUserHasRole(tx, userId, session.user.id);
+    });
 
-    // Vérifier si l'user a d'autres rôles
-    const remainingRoles = await db
-      .select()
-      .from(userRoles)
-      .where(eq(userRoles.userId, userId));
-
-
-    // Si aucun rôle restant, assigner "Membre"
-    if (remainingRoles.length === 0) {
-      const membreRole = await db.query.roles.findFirst({
-        where: eq(roles.name, "Membre"),
-      });
-
-      if (membreRole) {
-        await db.insert(userRoles).values({
-          userId,
-          roleId: membreRole.id,
-          assignedBy: session.user.id,
-        });
-      }
-    }
-
-    // Audit log
+    // Audit log (hors transaction car non-critique)
     await logAudit({
       userId: session.user.id,
       action: "remove",

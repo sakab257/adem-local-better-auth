@@ -22,7 +22,7 @@ import { revalidatePath } from "next/cache";
 export async function listWhitelistEmails(): Promise<DataResponse<WhitelistEntry[]>> {
   try {
     const session = await verifySession();
-    await requireAllPermissions(session.user.id, ["members:invite","members:read"]);
+    await requireAllPermissions(session.user.id, ["members:read"]);
 
     const emails = await db
       .select()

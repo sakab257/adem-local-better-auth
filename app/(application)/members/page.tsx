@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { verifySession } from "@/lib/dal";
 import { can, requirePermission } from "@/lib/rbac";
-import { listUsers } from "@/server/members";
+import { listUsers, getManageableRoles } from "@/server/members";
 import { MembersGrid } from "@/components/members/members-grid";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +15,15 @@ export const metadata = {
   description: "Gérer les membres de l'association",
 };
 
-export default async function MembersPage() {
+interface PageProps {
+  searchParams: Promise<{
+    activeTab?: string;
+    page?: string;
+    limit?: string;
+  }>;
+}
+
+export default async function MembersPage({ searchParams }: PageProps) {
   // Vérifier les permissions
   const session = await verifySession();
   await requirePermission(session.user.id, "members:read");
@@ -22,20 +31,35 @@ export default async function MembersPage() {
   // Vérifier si l'utilisateur peut changer les rôles
   const canChangeRoles = await can(session.user.id, "members:change_role");
 
-  // Récupérer les membres par statut
+  // Récupérer les searchParams
+  const params = await searchParams;
+  const page = parseInt(params.page || "1", 10);
+  const limit = parseInt(params.limit || "20", 10);
+
+  // Récupérer les rôles disponibles (pour le dialog ChangeRole)
+  // Chargé côté serveur pour éviter waterfall request
+  const availableRolesResult = await getManageableRoles();
+
+  // Récupérer les membres par statut avec pagination
   const [activeMembersResult, pendingMembersResult, bannedMembersResult] = await Promise.all([
-    listUsers({ status: "active", limit: 50 }),
-    listUsers({ status: "pending", limit: 50 }),
-    listUsers({ status: "banned", limit: 50 }),
+    listUsers({ status: "active", page, limit }),
+    listUsers({ status: "pending", page, limit }),
+    listUsers({ status: "banned", page, limit }),
   ]);
 
   // Gérer les erreurs
-  if (!activeMembersResult.success || !pendingMembersResult.success || !bannedMembersResult.success) {
+  if (
+    !activeMembersResult.success ||
+    !pendingMembersResult.success ||
+    !bannedMembersResult.success ||
+    !availableRolesResult.success
+  ) {
     const errorMessage =
       activeMembersResult.error ||
       pendingMembersResult.error ||
       bannedMembersResult.error ||
-      "Erreur lors du chargement des membres";
+      availableRolesResult.error ||
+      "Erreur lors du chargement des données";
 
     return (
       <div className="container max-w-4xl py-10 px-4 mx-auto">
@@ -59,6 +83,7 @@ export default async function MembersPage() {
   const activeMembers = activeMembersResult.data!;
   const pendingMembers = pendingMembersResult.data!;
   const bannedMembers = bannedMembersResult.data!;
+  const availableRoles = availableRolesResult.data!;
 
   return (
     <div className="container max-w-4xl py-10 px-4 mx-auto">
@@ -95,6 +120,12 @@ export default async function MembersPage() {
                     status="active"
                     currentUserId={session.user.id}
                     canChangeRoles={canChangeRoles}
+                    availableRoles={availableRoles}
+                  />
+                  <PaginationControls
+                    currentPage={page}
+                    totalPages={Math.ceil(activeMembers.total / limit)}
+                    totalItems={activeMembers.total}
                   />
                 </CardContent>
               </Card>
@@ -111,6 +142,12 @@ export default async function MembersPage() {
                     status="pending"
                     currentUserId={session.user.id}
                     canChangeRoles={canChangeRoles}
+                    availableRoles={availableRoles}
+                  />
+                  <PaginationControls
+                    currentPage={page}
+                    totalPages={Math.ceil(pendingMembers.total / limit)}
+                    totalItems={pendingMembers.total}
                   />
                 </CardContent>
               </Card>
@@ -127,6 +164,12 @@ export default async function MembersPage() {
                     status="banned"
                     currentUserId={session.user.id}
                     canChangeRoles={canChangeRoles}
+                    availableRoles={availableRoles}
+                  />
+                  <PaginationControls
+                    currentPage={page}
+                    totalPages={Math.ceil(bannedMembers.total / limit)}
+                    totalItems={bannedMembers.total}
                   />
                 </CardContent>
               </Card>
