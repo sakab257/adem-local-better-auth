@@ -236,7 +236,7 @@ export function AddMemberForm({ availableRoles }: AddMemberFormProps) {
           </Alert>
 
           {/* Boutons */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 justify-between">
             <Button type="submit" disabled={isSubmitting || availableRoles.length === 0}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSubmitting ? "Création en cours..." : "Créer le membre"}

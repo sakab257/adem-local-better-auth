@@ -17,10 +17,27 @@ import { usePathname } from "next/navigation"
 
 interface LinkSidebarProps {
     userPermissions: {
-        isAdmin: boolean;
-        isModerator: boolean;
-        isBureauOrCA: boolean;
-        isCorrector: boolean;
+        // Événements
+        canReadEvents: boolean;
+
+        // Ressources (Cours, Exercices, Annales)
+        canReadResources: boolean;
+        canCreateResources: boolean;
+        canValidateResources: boolean;
+
+        // Membres
+        canReadMembers: boolean;
+        canCreateMembers: boolean;
+        canInviteMembers: boolean;
+
+        // Rôles
+        canReadRoles: boolean;
+
+        // Audit Logs
+        canReadLogs: boolean;
+
+        // Tâches
+        canReadTasks: boolean;
     };
 }
 
@@ -183,8 +200,8 @@ const LinkSidebar = ({ userPermissions }: LinkSidebarProps) => {
             </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Section Audit - visible uniquement pour Admin/Moderateur */}
-            {userPermissions.isModerator && (
+            {/* Section Audit - visible pour ceux qui ont la permission logs:read */}
+            {userPermissions.canReadLogs && (
                 <SidebarGroup>
                 <SidebarGroupLabel>Audit</SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -212,8 +229,8 @@ const LinkSidebar = ({ userPermissions }: LinkSidebarProps) => {
                 </SidebarGroup>
             )}
 
-            {/* Section Gestion - visible pour ceux qui peuvent gérer les ressources */}
-            {userPermissions.isCorrector && (
+            {/* Section Gestion - visible pour ceux qui ont resources:create ou resources:validate */}
+            {(userPermissions.canCreateResources || userPermissions.canValidateResources) && (
                 <SidebarGroup>
                 <SidebarGroupLabel>Gestion</SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -241,32 +258,59 @@ const LinkSidebar = ({ userPermissions }: LinkSidebarProps) => {
                 </SidebarGroup>
             )}
 
-            {/* Section Modération - visible uniquement pour Bureau/CA/Admin */}
-            {userPermissions.isBureauOrCA && (
+            {/* Section Modération - visible pour ceux qui ont les permissions membres:* */}
+            {(userPermissions.canReadMembers || userPermissions.canCreateMembers || userPermissions.canInviteMembers || userPermissions.canReadRoles) && (
                 <SidebarGroup>
                 <SidebarGroupLabel>Modération</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
-                    {moderation.organization.map((item) => {
-                        const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
-
-                        return (
-                            <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={isActive}
-                                className="transition-all"
-                            >
-                                <Link href={item.url}>
-                                    <item.icon />
-                                    <span className="capitalize text-xs">{item.title}</span>
-                                </Link>
-                            </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        );
-                    })}
-                    {/* Administration visible uniquement pour Admin */}
-                    {userPermissions.isModerator && moderation.administration.map((item) => {
+                    {/* Membres - visible si members:read */}
+                    {userPermissions.canReadMembers && moderation.organization.find(item => item.url === "/members") && (
+                        <SidebarMenuItem key="members">
+                        <SidebarMenuButton
+                            asChild
+                            isActive={pathname === "/members" || pathname.startsWith("/members/")}
+                            className="transition-all"
+                        >
+                            <Link href="/members">
+                                <Users />
+                                <span className="capitalize text-xs">Membres</span>
+                            </Link>
+                        </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
+                    {/* Ajouter - visible si members:create */}
+                    {userPermissions.canCreateMembers && moderation.organization.find(item => item.url === "/add") && (
+                        <SidebarMenuItem key="add">
+                        <SidebarMenuButton
+                            asChild
+                            isActive={pathname === "/add" || pathname.startsWith("/add/")}
+                            className="transition-all"
+                        >
+                            <Link href="/add">
+                                <CirclePlus />
+                                <span className="capitalize text-xs">Ajouter</span>
+                            </Link>
+                        </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
+                    {/* Invitations - visible si members:invite */}
+                    {userPermissions.canInviteMembers && moderation.organization.find(item => item.url === "/invitations") && (
+                        <SidebarMenuItem key="invitations">
+                        <SidebarMenuButton
+                            asChild
+                            isActive={pathname === "/invitations" || pathname.startsWith("/invitations/")}
+                            className="transition-all"
+                        >
+                            <Link href="/invitations">
+                                <FileSymlink />
+                                <span className="capitalize text-xs">Invitations</span>
+                            </Link>
+                        </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
+                    {/* Rôles (Administration) - visible si roles:read */}
+                    {userPermissions.canReadRoles && moderation.administration.map((item) => {
                         const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
 
                         return (

@@ -11,7 +11,7 @@ import LinkSidebar from "./links-sidebar";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { isAdmin, isModerator, isBureauOrCA, isCorrector } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 
 export async function AppSidebar() {
     // Récupérer la session côté serveur
@@ -24,18 +24,35 @@ export async function AppSidebar() {
         redirect("/sign-in");
     }
 
-    // Récupérer les permissions de l'utilisateur
+    // Récupérer les permissions de l'utilisateur (basé sur les permissions, pas les rôles)
     const userPermissions = {
-        isAdmin: await isAdmin(session.user.id),
-        isModerator: await isModerator(session.user.id),
-        isBureauOrCA: await isBureauOrCA(session.user.id),
-        isCorrector: await isCorrector(session.user.id)
+        // Événements
+        canReadEvents: await can(session.user.id, "events:read"),
+
+        // Ressources (Cours, Exercices, Annales)
+        canReadResources: await can(session.user.id, "resources:read"),
+        canCreateResources: await can(session.user.id, "resources:create"),
+        canValidateResources: await can(session.user.id, "resources:validate"),
+
+        // Membres
+        canReadMembers: await can(session.user.id, "members:read"),
+        canCreateMembers: await can(session.user.id, "members:create"),
+        canInviteMembers: await can(session.user.id, "members:invite"),
+
+        // Rôles
+        canReadRoles: await can(session.user.id, "roles:read"),
+
+        // Audit Logs
+        canReadLogs: await can(session.user.id, "logs:read"),
+
+        // Tâches
+        canReadTasks: await can(session.user.id, "tasks:read"),
     };
 
     return (
         <Sidebar variant="floating" className="pr-0">
         <SidebarHeader className="flex items-center justify-center h-16">
-            <Image src={'/adem_logo.svg'} alt="Logo de l'ADEM" width={35} height={35}/>
+            <Image src={'/adem_logo.svg'} alt="Logo de l'ADEM" width={50} height={50}/>
         </SidebarHeader>
         <SidebarSeparator className="mx-auto"/>
             <LinkSidebar userPermissions={userPermissions} />

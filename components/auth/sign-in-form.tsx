@@ -62,7 +62,7 @@ export function SignInForm() {
           },
           onError: (ctx) => {
             if (ctx.error.status === 403) {
-              toast.error("Email non verifiée");
+              toast.error("Une erreur s'est produite. Veuillez réessayer plus tard...");
             }
             else{
               toast.error("Email ou mot de passe incorrect");

@@ -106,7 +106,7 @@ export default async function MembersPage({ searchParams }: PageProps) {
               En attente ({pendingMembers.total})
             </TabsTrigger>
             <TabsTrigger value="banned">
-              Bannis / Expulsés ({bannedMembers.total})
+              Bannis ({bannedMembers.total})
             </TabsTrigger>
           </TabsList>
 

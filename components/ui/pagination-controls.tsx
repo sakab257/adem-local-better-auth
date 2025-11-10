@@ -45,7 +45,7 @@ export function PaginationControls({
   return (
     <div className="flex items-center justify-between px-2 py-4">
       <div className="text-sm text-muted-foreground">
-        {startItem}-{endItem} sur {totalItems} membres
+        {startItem}-{endItem} sur {totalItems}
       </div>
 
       <div className="flex items-center space-x-2">

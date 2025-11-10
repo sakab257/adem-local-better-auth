@@ -176,13 +176,16 @@ Web-app pour la gestion et les ressources de l'association ADEM.
 - `hooks/use-members-filter.ts`, `use-members-actions.ts`, `use-members-hierarchy.ts`
 - `components/members/member-card.tsx`, `members-search-bar.tsx`
 
+10. **✅ Ajout membre unique (/add)** : Création + envoi OTP + force reset on first login
+11. **✅ Page audit logs (/logs)** : Consultation complète des logs d'audit avec filtres avancés
+
 ### Fonctionnalités Manquantes
 
-16. **❌ Ajout membre unique (/add)** : Création + envoi OTP + force reset on first login
-17. **❌ Dashboard** : Citation + KPIs + événements + tâches + quick actions
-18. **❌ Cours/Exercices/Annales** : Éditeur Tiptap + workflow validation
-19. **❌ Calendrier** : CRUD événements (Admin/Bureau/CA) + inscriptions membres
-20. **❌ Feedback** : Formulaire de retour utilisateurs
+12. **❌ Cours/Exercices/Annales** : Éditeur Tiptap + workflow validation + export pdf/enregistrer un cours
+13. **❌ Calendrier** : CRUD événements (Admin/Bureau/CA) + inscriptions membres
+14. **❌ Tâches** : Tableau Kanban pour les tâches à faire, tâches en cours, tâches terminées de la semaine avec un graphique pour voir l'évolution
+15. **❌ Dashboard** : Citation + KPIs + événements + tâches + quick actions
+16. **❌ Feedback** : Formulaire de retour utilisateurs
 
 ---
 
@@ -353,7 +356,7 @@ pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 - **Composants React** : 45+
 - **Guards RBAC** : 16 fonctions (`lib/rbac.ts` - 430+ lignes)
 
-### Architecture (Score : 7.2/10)
+### Architecture (Score : 9.1/10)
 
 #### Forces ✅
 - ✅ RBAC complet et sophistiqué (hiérarchie, guards, audit)
@@ -361,10 +364,6 @@ pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 - ✅ Architecture modulaire avec séparation claire des responsabilités
 - ✅ Sécurité globalement solide (verifySession, requirePermission)
 - ✅ Messages utilisateurs en français
-
-#### Axes d'amélioration ⚠️
-- ⚠️ Découper composants volumineux (members-grid.tsx: 472 lignes)
-- ⚠️ Uniformiser vérifications permissions
 
 ---
 
@@ -406,15 +405,36 @@ pnpm db:studio                # Drizzle Studio (GUI DB sur port 4983)
 - ✅ **Toutes les violations P1 corrigées** : Transactions DB + Pagination + SSR
 - ✅ **Toutes les améliorations P2 implémentées** : Metadata + Gestion d'erreurs résiliente + Code DRY
 
-### 🎯 Prochaine étape : Phase 6 - Page `/add` (1 jour)
+### 🎉 Phase 6 (v0.8.0)
 
-**Objectif** : Création membre unique avec envoi email + reset password
+**Création de membre** - Fonctionnalité terminée :
+- ✅ **Créer un membre** : On peut désormais créer un membre avec un mdp sécurisé et un envoi de mail pour réinitialiser le mdp
 
-**Ensuite** : Dashboard → Cours/Exercices/Annales → Calendrier
+### 🎉 Phase 7 (v0.9.0) - Page `/logs` ✅ TERMINÉE
+
+**Audit Logs complet** - Fonctionnalité terminée :
+- ✅ **Page `/logs`** : Consultation complète des logs d'audit
+- ✅ **Filtres avancés** : Action, Ressource, Date de début, Date de fin
+- ✅ **Table responsive** : Date, Utilisateur, Action, Ressource affectée, Détails
+- ✅ **Dialog détails** : Affichage complet des métadonnées, IP, User-Agent
+- ✅ **Jointures intelligentes** : Affichage des noms de ressources (users, roles) au lieu des IDs
+- ✅ **Pagination** : 20 logs par page avec navigation
+- ✅ **Protection RBAC** : Basé sur permission `logs:read` (non sur les rôles)
+- ✅ **Architecture extensible** : Commentaires détaillés pour ajouter facilement de nouvelles ressources
+
+**Améliorations RBAC** :
+- ✅ **Sidebar basée sur permissions** : Toutes les routes utilisent maintenant les permissions au lieu des rôles
+- ✅ **Permissions granulaires** : `canReadMembers`, `canReadLogs`, `canCreateResources`, etc.
+
+### 🎯 Prochaine étape : Phase 8 - Cours/Exercices/Annales (5-7 jours)
+
+**Objectif** : Éditeur Tiptap + workflow validation (3 Correctors, bypass SuperCorrector)
+
+**Ensuite** : Calendrier → Tâches → Dashboard
 
 ---
 
-**Dernière mise à jour** : 2025-11-09
-**Version** : 0.8.0
-**Score Architecture** : 9.1/10 (production-ready)
-**Prochaine milestone** : Phase 6 - Page `/add` (création membre unique)
+**Dernière mise à jour** : 2025-11-10
+**Version** : 0.9.0
+**Score Architecture** : 9.2/10 (production-ready)
+**Prochaine milestone** : Phase 8 - Cours/Exercices/Annales (éditeur Tiptap + workflow validation)

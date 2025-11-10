@@ -7,8 +7,22 @@ import { nanoid } from "nanoid";
  *
  * Enregistre toutes les actions critiques (CRUD roles, ban users, etc.)
  * pour avoir un audit trail complet.
+ *
+ * 📝 GUIDE POUR AJOUTER UNE NOUVELLE RESSOURCE OU ACTION :
+ *
+ * 1️⃣ Ajouter le type dans AuditAction ou AuditResource ci-dessous
+ * 2️⃣ Mettre à jour les permissions dans /db/seed.ts (section PERMISSIONS_BASE)
+ * 3️⃣ Ajouter les jointures dans /server/audit.ts (fonction listAuditLogs)
+ * 4️⃣ Ajouter les couleurs de badges dans /components/logs/audit-logs-table.tsx
+ * 5️⃣ Utiliser logAudit() dans vos server actions
  */
 
+/**
+ * Types d'actions possibles dans l'audit log
+ *
+ * 📝 AJOUTER ICI LES NOUVELLES ACTIONS :
+ * Exemples : "validate", "publish", "reject", "archive", "restore", etc.
+ */
 export type AuditAction =
   | "create"
   | "update"
@@ -17,7 +31,19 @@ export type AuditAction =
   | "unban"
   | "assign"
   | "remove";
+  // 📝 Ajouter les nouvelles actions ici :
+  // | "validate"
+  // | "publish"
+  // | "reject"
+  // | "archive"
+  // | "restore";
 
+/**
+ * Types de ressources possibles dans l'audit log
+ *
+ * 📝 AJOUTER ICI LES NOUVELLES RESSOURCES :
+ * Exemples : "course", "exercise", "exam", etc.
+ */
 export type AuditResource =
   | "role"
   | "permission"
@@ -27,6 +53,11 @@ export type AuditResource =
   | "resource"
   | "task"
   | "feedback";
+  // 📝 Ajouter les nouvelles ressources ici :
+  // | "course"
+  // | "exercise"
+  // | "exam"
+  // | "chapter";
 
 interface LogAuditInput {
   userId: string;
@@ -41,13 +72,41 @@ interface LogAuditInput {
 /**
  * Enregistre une action dans les logs d'audit
  *
+ * ⚠️ IMPORTANT : Appeler cette fonction dans TOUTES les server actions qui :
+ * - Créent, modifient ou suppriment des données sensibles
+ * - Changent des permissions ou des rôles
+ * - Affectent d'autres utilisateurs
+ *
+ * 💡 ASTUCE : Utiliser getAuditContext() pour récupérer automatiquement l'IP et le user-agent
+ *
+ * @param userId - ID de l'utilisateur qui effectue l'action
+ * @param action - Type d'action (create, update, delete, etc.)
+ * @param resource - Type de ressource affectée (user, role, event, etc.)
+ * @param resourceId - ID de la ressource affectée (optionnel)
+ * @param metadata - Données additionnelles utiles pour l'audit (optionnel)
+ * @param ipAddress - Adresse IP (optionnel, utiliser getAuditContext())
+ * @param userAgent - User-Agent du navigateur (optionnel, utiliser getAuditContext())
+ *
  * @example
+ * // Exemple simple
  * await logAudit({
  *   userId: session.user.id,
  *   action: "delete",
  *   resource: "role",
  *   resourceId: roleId,
  *   metadata: { roleName: "Moderateur", affectedUsers: 5 }
+ * });
+ *
+ * @example
+ * // Exemple avec IP et user-agent
+ * const auditContext = getAuditContext(await headers());
+ * await logAudit({
+ *   userId: session.user.id,
+ *   action: "ban",
+ *   resource: "user",
+ *   resourceId: targetUserId,
+ *   metadata: { reason: "Violation des règles" },
+ *   ...auditContext
  * });
  */
 export async function logAudit({

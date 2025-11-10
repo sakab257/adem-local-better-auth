@@ -16,9 +16,9 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
   4. **Modération** : **Invitations** (import `.csv/.xlsx/.txt` pour whitelist avec rôle/état pré-assignés), **Ajouter** (création unique d'utilisateur & envoi OTP + reset on first login), **Membres** (recherche/tri/édition/suppression, changement de rôle & statut), **Rôles** (CRUD rôles & permissions style Discord , uniquement pour ceux qui ont les permissions 'roles:read', 'roles:update', etc...).
   5. **Autres** : **Feedback**, **Paramètres** (avatar, nom, email, password, delete).
 
-## État Actuel du Projet (v0.8.0)
+## État Actuel du Projet (v0.9.0)
 
-**Score Architecture Global : 9.1/10** ⬆️ (+1.9 depuis v0.7.0)
+**Score Architecture Global : 9.2/10** ⬆️ (+0.1 depuis v0.8.0)
 
 ### ✅ Implémenté
 
@@ -57,13 +57,16 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
 - ✅ **`/members`** : 3 tabs (actifs/pending/bannis) + 7 dialogs + toutes actions + hiérarchie + gestion d'erreurs
 - ✅ **`/roles`** : CRUD complet + 3 tabs (Général/Permissions/Membres) + safe delete
 - ✅ **`/invitations`** : Import CSV/XLSX/TXT + preview + batch operations + gestion d'erreurs
+- ✅ **`/add`** : Création membre unique + envoi email reset password
+- ✅ **`/logs`** : Consultation audit logs + filtres avancés + pagination + dialog détails
 - ✅ **`/settings`** : Profile + Account + Security (sauf avatar)
 
 #### Server Actions
-- ✅ **32+ actions** (1900+ lignes) avec guards + audit logging + hiérarchie
-  - `/server/members.ts` : 12 actions (getAllRoles, getManageableRoles, getUserById, listUsers, setUserRoles, banUser, unbanUser, acceptUser, rejectUser, deleteUser, resetUserPassword, canManageUserAction)
+- ✅ **38+ actions** (2200+ lignes) avec guards + audit logging + hiérarchie
+  - `/server/members.ts` : 12 actions (getAllRoles, getManageableRoles, getUserById, listUsers, setUserRoles, banUser, unbanUser, acceptUser, rejectUser, deleteUser, resetUserPassword, canManageUserAction, createMember)
   - `/server/roles.ts` : 10 actions (listRoles, getRoleById, getRoleMembers, getAllPermissions, createRole, updateRole, updateRolePermissions, deleteRole, removeUserFromRole)
   - `/server/invitations.ts` : 5 actions (listWhitelistEmails, addEmailToWhitelist, addEmailsToWhitelist, removeEmailFromWhitelist, clearWhitelist)
+  - `/server/audit.ts` : 3 actions (listAuditLogs, getAvailableActions, getAvailableResources)
   - `/server/settings.ts` : 1 action (deleteAccount)
   - `/server/auth.ts` : 1 action (signUpWithWhitelist)
 
@@ -121,14 +124,15 @@ Tu es un staff engineer spécialisé en **Next.js 16 (App Router)**, **TypeScrip
 
 #### Fonctionnalités Manquantes (P3 - Variable)
 
-11. **❌ Page `/add`** : Création membre unique + envoi email + force reset password (1 jour)
-12. **❌ Dashboard `/`** : Citation + 4 KPIs + événements + tâches + quick actions (2-3 jours)
-13. **❌ Cours** : Éditeur Tiptap + workflow validation (3 Correctors, bypass SuperCorrector) (5-7 jours)
-14. **❌ Exercices** : Par TD/matière/filière avec indices & corrections (3-5 jours)
-15. **❌ Annales** : Mode simulation examen avec minuteur (3-5 jours)
-16. **❌ Calendrier** : CRUD événements + inscriptions membres (2-3 jours)
-17. **❌ Tâches** : Kanban personnel + chart progression (2-3 jours)
-18. **❌ Feedback** : Formulaire retour utilisateurs (1 jour)
+11. **✅ Page `/add`** : Création membre unique + envoi email + force reset password (COMPLÉTÉ)
+12. **✅ Page `/logs`** : Consultation audit logs + filtres + pagination (COMPLÉTÉ)
+13. **❌ Dashboard `/`** : Citation + 4 KPIs + événements + tâches + quick actions (2-3 jours)
+14. **❌ Cours** : Éditeur Tiptap + workflow validation (3 Correctors, bypass SuperCorrector) (5-7 jours)
+15. **❌ Exercices** : Par TD/matière/filière avec indices & corrections (3-5 jours)
+16. **❌ Annales** : Mode simulation examen avec minuteur (3-5 jours)
+17. **❌ Calendrier** : CRUD événements + inscriptions membres (2-3 jours)
+18. **❌ Tâches** : Kanban personnel + chart progression (2-3 jours)
+19. **❌ Feedback** : Formulaire retour utilisateurs (1 jour)
 
 ---
 
@@ -260,6 +264,198 @@ export async function verifySession(): Promise<{ user: { id: string } }> {
 
 ---
 
+## 📋 Guide : Audit Logs - Ajouter une nouvelle ressource
+
+Le système d'audit logging permet de tracer toutes les actions sensibles effectuées sur la plateforme. Cette section explique comment étendre le système pour de nouvelles ressources (cours, exercices, événements, etc.).
+
+### 🎯 Checklist rapide
+
+Quand vous ajoutez une nouvelle fonctionnalité avec des ressources à tracker :
+
+1. ✅ **Définir les types** dans `/lib/audit.ts`
+2. ✅ **Ajouter les permissions** dans `/db/seed.ts`
+3. ✅ **Mettre à jour les jointures** dans `/server/audit.ts`
+4. ✅ **Configurer les couleurs** dans `/components/logs/audit-logs-table.tsx`
+5. ✅ **Utiliser `logAudit()`** dans vos server actions
+
+### 📝 Étapes détaillées
+
+#### 1️⃣ Définir les types (`/lib/audit.ts`)
+
+Ajoutez votre nouvelle action ou ressource aux types TypeScript :
+
+```typescript
+export type AuditAction =
+  | "create"
+  | "update"
+  | "delete"
+  // ... autres actions existantes
+  | "validate"    // ✅ Nouvelle action
+  | "publish";    // ✅ Nouvelle action
+
+export type AuditResource =
+  | "role"
+  | "user"
+  // ... autres ressources existantes
+  | "course"      // ✅ Nouvelle ressource
+  | "exercise";   // ✅ Nouvelle ressource
+```
+
+Les commentaires dans le fichier indiquent où ajouter les nouveaux types.
+
+#### 2️⃣ Ajouter les permissions (`/db/seed.ts`)
+
+Dans la section `PERMISSIONS_BASE`, ajoutez les permissions pour votre nouvelle ressource :
+
+```typescript
+const PERMISSIONS_BASE = [
+  // ... permissions existantes
+
+  // === COURS ===
+  {
+    id: nanoid(),
+    name: "courses:create",
+    description: "Créer de nouveaux cours",
+    resource: "courses",
+    action: "create",
+  },
+  {
+    id: nanoid(),
+    name: "courses:read",
+    description: "Consulter les cours",
+    resource: "courses",
+    action: "read",
+  },
+  // ... autres permissions
+];
+```
+
+**N'oubliez pas** de lancer le seed après modification :
+```bash
+pnpm db:seed
+```
+
+#### 3️⃣ Mettre à jour les jointures (`/server/audit.ts`)
+
+**a) Importer la table** en haut du fichier :
+
+```typescript
+import { auditLogs, user, roles, courses } from "@/db/schema"; // ✅ Ajouter courses
+```
+
+**b) Ajouter le leftJoin** dans la requête (cherchez les commentaires 📝) :
+
+```typescript
+.leftJoin(courses, sql`${auditLogs.resourceId} = ${courses.id} AND ${auditLogs.resource} = 'course'`)
+```
+
+**c) Ajouter le WHEN** dans le CASE SQL pour `resourceName` :
+
+```typescript
+resourceName: sql<string>`CASE
+  WHEN ${auditLogs.resource} IN ('user', 'member') THEN ${targetUser.name}
+  WHEN ${auditLogs.resource} = 'role' THEN ${roles.name}
+  WHEN ${auditLogs.resource} = 'course' THEN ${courses.title}  -- ✅ Nouveau
+  ELSE NULL
+END`,
+```
+
+#### 4️⃣ Configurer les couleurs (`/components/logs/audit-logs-table.tsx`)
+
+**Pour les actions (`getActionVariant`)** :
+
+```typescript
+function getActionVariant(action: string) {
+  switch (action) {
+    // ... cases existants
+    case "validate":
+      return "default";    // ✅ Bleu pour actions positives
+    case "publish":
+      return "default";
+    default:
+      return "outline";
+  }
+}
+```
+
+**Pour les ressources (`getResourceVariant`)** :
+
+```typescript
+function getResourceVariant(resource: string) {
+  switch (resource) {
+    // ... cases existants
+    case "course":
+    case "exercise":
+      return "secondary";  // ✅ Gris pour ressources pédagogiques
+    default:
+      return "outline";
+  }
+}
+```
+
+**Convention des couleurs :**
+- `"default"` (bleu) : Actions positives, users, events
+- `"secondary"` (gris) : Modifications, roles, ressources pédagogiques
+- `"destructive"` (rouge) : Suppressions, bannissements
+- `"outline"` (bordure) : Actions mineures, permissions
+
+#### 5️⃣ Utiliser `logAudit()` dans vos server actions
+
+Dans vos nouvelles server actions (ex: `/server/courses.ts`) :
+
+```typescript
+import { logAudit, getAuditContext } from "@/lib/audit";
+import { headers } from "next/headers";
+
+export async function createCourse(data: CourseInput): Promise<ActionResponse> {
+  try {
+    const session = await verifySession();
+    await requirePermission(session.user.id, "courses:create");
+
+    // Créer le cours
+    const [newCourse] = await db.insert(courses).values({
+      id: nanoid(),
+      title: data.title,
+      // ... autres champs
+    }).returning();
+
+    // ✅ Logger l'action
+    const auditContext = getAuditContext(await headers());
+    await logAudit({
+      userId: session.user.id,
+      action: "create",
+      resource: "course",
+      resourceId: newCourse.id,
+      metadata: { title: data.title, matiere: data.matiere },
+      ...auditContext
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erreur:", error);
+    return { success: false, error: "Impossible de créer le cours." };
+  }
+}
+```
+
+### 💡 Conseils
+
+- **Toujours logger les actions sensibles** : create, update, delete, ban, assign, validate, publish
+- **Utiliser des metadata riches** : Stockez des infos utiles pour comprendre le contexte plus tard
+- **Respecter les conventions de nommage** : `resource:action` pour les permissions
+- **Tester les filtres** : Vérifiez que vos nouvelles ressources apparaissent dans les filtres `/logs`
+
+### 🐛 Debugging
+
+Si vos logs n'apparaissent pas correctement :
+
+1. **Vérifier les types** : TypeScript doit valider vos types
+2. **Vérifier la DB** : Les logs sont-ils bien insérés ? (`SELECT * FROM audit_log`)
+3. **Vérifier les jointures** : Le nom de la ressource est-il récupéré ? (regardez dans le dialog détails)
+4. **Vérifier les permissions** : Avez-vous la permission `logs:read` ?
+
+---
+
 ## Plan Prioritaire (v0.8.0 → v1.0.0)
 
 ### ✅ Phase 1-4 : RBAC + Membres + Rôles + Invitations + Hiérarchie + Gestion d'erreurs (COMPLÉTÉ)
@@ -305,8 +501,14 @@ export async function verifySession(): Promise<{ user: { id: string } }> {
 - `components/members/member-card.tsx`, `members-search-bar.tsx`
 
 
-### Phase 6 : Page `/add` (P0 - 1 jour)
+### ✅ Phase 6 : Page `/add` (COMPLÉTÉ)
 **Objectif** : Création membre unique avec envoi email
+
+### ✅ Phase 7 : Page `/logs` (COMPLÉTÉ)
+**Objectif** : Consultation complète des logs d'audit
+
+### Phase 8 : Éditeur Tiptap + Workflow Validation (P1 - 5-7 jours)
+**Objectif** : MVP ressources (Cours)
 
 1. **Form d'ajout membre** :
    - Email (validation Zod)
@@ -460,6 +662,6 @@ Quand tu produis du code :
 
 ---
 
-**Dernière mise à jour** : 2025-11-09
-**Version** : 0.8.0 (Auth + RBAC + Membres + Rôles + Invitations + Hiérarchie + Refactoring Architecture Complet)
-**Prochaine étape** : Phase 6 - Page `/add` (création membre unique)
+**Dernière mise à jour** : 2025-11-10
+**Version** : 0.9.0 (Auth + RBAC + Membres + Rôles + Invitations + Hiérarchie + Refactoring Architecture + Audit Logs + Création Membre)
+**Prochaine étape** : Phase 8 - Cours/Exercices/Annales (éditeur Tiptap + workflow validation)

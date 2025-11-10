@@ -2,6 +2,8 @@
  * Types partagés pour l'application ADEM
  */
 
+import { AuditAction, AuditResource } from "./audit";
+
 // ============================================
 // TYPES UTILISATEUR
 // ============================================
@@ -142,5 +144,38 @@ export interface CreateMemberInput {
 }
 
 // ============================================
-// TYPES ROLES
+// TYPES AUDIT
 // ============================================
+
+export interface AuditLogEntry {
+  id: string;
+  userId: string | null;
+  userName: string | null;
+  userEmail: string | null;
+  action: string;
+  resource: string;
+  resourceId: string | null;
+  resourceName: string | null; // Nom de la ressource affectée (user, role, etc.)
+  metadata: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: Date;
+}
+
+export interface ListAuditLogsFilters {
+  action?: AuditAction;
+  resource?: AuditResource;
+  userId?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
+}
+
+export interface ListAuditLogsResponse {
+  logs: AuditLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
